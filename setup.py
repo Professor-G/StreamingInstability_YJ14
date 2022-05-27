@@ -27,8 +27,8 @@ setup(
     python_requires='>=3.7,<4',
     include_package_data=True,
     test_suite="nose.collector",
-    #package_data={
-    #'': ['density_cube.npy'],
-#},
+    package_data={
+    '': ['density_cube_1.npy', 'density_cube_2.npy'],
+},
 
 )
