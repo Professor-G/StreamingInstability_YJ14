@@ -150,11 +150,15 @@ T = 30
 kappa_0 = 2e-4
 kappa = kappa_0 * T**2.1 #Opacity is function of T at low temperatures (See Table 2: https://iopscience.iop.org/article/10.1086/304514/pdf) & Figure 1 (https://arxiv.org/pdf/astro-ph/0308344.pdf)
 
+path = '/Users/daniel/Desktop/StreamingInstability_YJ14/StreamingInstability_YJ14/data/'
+cube1 = np.load(path+'density_cube_1.npy')
+cube2 = np.load(path+'density_cube_2.npy')
 
-rhop, axis = load_cube()
+axis = np.loadtxt(path+'axis')
+rhop = np.r_[cube1, cube2]
 
 # Calculate optical depth
-n = len(z) 
+n = len(axis)
 nu = np.logspace(11,15,n)
 
 tau = calculate_tau(rhop, axis=axis, kappa=kappa, sigma=1000)
