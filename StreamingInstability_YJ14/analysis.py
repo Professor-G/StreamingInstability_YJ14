@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 from pathlib import Path
 import pkg_resources
 
-from radiative_transport import
+from radiative_transport import calculate_tau
 
 def load_cube():
     """
