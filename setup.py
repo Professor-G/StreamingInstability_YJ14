@@ -29,6 +29,6 @@ setup(
     test_suite="nose.collector",
     #package_data={
     #'': ['density_cube.npy'],
-},
+#},
 
 )
