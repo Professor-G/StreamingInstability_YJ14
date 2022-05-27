@@ -13,18 +13,17 @@ warnings.filterwarnings("ignore")
 
 rhop = np.load("/Users/daniel/Desktop/density_cube.npy")
 
-h,k,c,sb,au= 6.626e-27, 1.3807e-16, 2.997e10, 5.67e-5,const.au.cgs.value
+h,k,c,sb,au= 6.626e-27, 1.3807e-16, 2.997e10, 5.67e-5,  const.au.cgs.value
 
 #r = 50 * au #position of shearing box
 #h = 0.1 #scale ratio
 #H = h * r #scale height (5 AU)
 
-x, y, z = f.x, f.y, f.z
-xp, yp, zp = fp.xp, fp.yp, fp.zp
+#x, y, z = f.x, f.y, f.z
+#xp, yp, zp = fp.xp, fp.yp, fp.zp
 
 #dust_to_gas = 1e-2
 #sigma0 = 1000 #column density at 1 AU
-#sigma = sigma0
 #sigma = sigma0 * (r / au) ** (-1.)
 #rho = sigma / H / np.sqrt(2*np.pi) #multiply to density to make unitless
 
