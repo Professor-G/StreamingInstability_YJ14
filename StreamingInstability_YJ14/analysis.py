@@ -13,226 +13,312 @@ warnings.filterwarnings("ignore")
 from pathlib import Path
 import pkg_resources
 
+class density_cube:
+    """
+    Class for a density cube object. The class methods
+    allow radiative transfer calculations along the z axis
+    of the cube, enabling analysis given a range
+    of conditions.
+
+    Note:
+        The class methods assume that the 3D cube is symmetrical and
+        about each axis. 
+
+    Args:
+        density (ndarry): 3D density cube.
+        axis (ndarray): 1D array of the axis along which to integrate.
+        T (float): Temperature of the entire box, as this model is isothermal.
+            Defaults to 30.  
+        kappa (float):
+        sigma (float):
+        H (int): Scale height of the box, defaults to 5.
+
+    """
+    
+    def __init__(self, data=None, axis=None, T=30, kappa=1, sigma=100, H=5,
+        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
+
+        self.data = data
+        self.axis = axis 
+        self.T = T 
+        self.kappa = kappa
+        self.sigma = sigma
+        self.H = H*const.au.cgs.value
+        self.Lx = Lx 
+        self.Ly = Ly
+        self.Nz = Nz
+        self.Ny = Ny 
+        self.Nx = Nx 
+        self.dz = dz 
+        self.dy = dy 
+        self.dx = dx 
+
+        if self.data is None:
+            print('No data input, automatically loading density cube.')
+            if self.axis is None:
+                self.data, self.axis = load_cube()
+            else:
+                self.data = load_cube()[0]
+
+        self.tau = None 
+        self.flux = None
+        self.mass = None
+        self.mass_excess = None
+        
+        self.Nw = None
+        self.area = None 
+        self.mass = None
+        self.configure()
+
+    def configure(self):
+        """
+        Initializing parameters and creates flux, mass excess, and filling factor 
+        attributes. If sigma, H, or dx/dy/dz attributes are updated, re-run this method 
+        to re-configure the object.
+        """
+        print('Initializing parameters and attributes... By default model assumes symmetrical box, but if sigma, H, dx/dy/dz or Lx/Ly attributes are updated, run the configure() method to update the object.')
+        if self.Nz is None:
+            self.Nz = len(self.axis)
+        if self.Ny is None:
+            self.Ny = len(self.axis)
+        if self.Nx is None:
+            self.Nx = len(self.axis)
+
+        self.Nw = 1./(self.Nx * self.Ny)
+
+        if self.dz is None:
+            self.dz = np.diff(self.axis)[0]
+        if self.dy is None:
+            self.dy = np.diff(self.axis)[0]
+        if self.dx is None:
+            self.dx = np.diff(self.axis)[0]
+
+        if self.Lx is None:
+            self.Lx = np.abs(self.axis[0] - self.axis[-1])*self.H 
+        if self.Ly is None: 
+            self.Ly = np.abs(self.axis[0] - self.axis[-1])*self.H 
+
+        #Observed mass of the dust in the box
+        self.area = self.Lx * self.Ly
+            
+        #Code units
+        gas_column_density = self.sigma * np.sqrt(2*np.pi) #Gas column density
+        box_mass_codeunits = np.sum(self.data)* self.dx * self.dy * self.dz 
+        unit_mass = self.sigma * self.H**2
+        self.mass = box_mass_codeunits * unit_mass 
+        self.calc_flux()
+        self.calc_mass_excess()
+        self.calc_filling_factor()
+
+        return 
+
+    def blackbody(self, nu):
+        """
+        Planck's law, which describes the black body radiation 
+        of a source in thermal equilibrium at a given temperature T.
+
+        Args:
+            nu (ndarray): Array of frequencies.
+
+        Returns:
+            Spectral radiance of the source. 
+        """
+
+        bb = 2*const.h.cgs.value*nu**3 / (const.c.cgs.value**2*(np.exp(const.h.cgs.value*nu / (const.k_B.cgs.value*self.T)) - 1))
+
+        return bb
+
+    def calc_tau(self):
+        """
+        Integrates density cube along the first axis
+        of the array. 
+        
+        Returns:
+            2D array containing the integrated values along the third axis.
+        """
+        
+        tau = np.zeros([self.Ny, self.Nx]) #python reverses order
+               
+        for i in range(self.Nx):
+            for j in range(self.Ny):
+                surface_density = np.trapz(self.data[:,j,i]) * self.dz * self.sigma
+                tau[j, i] = surface_density * self.kappa
+            
+        self.tau = tau
+
+        return 
+
+    def calc_t(self, rhod):
+        """
+        Optical depth with respect to z position along the column.
+        Integrates from z to L. This is the optical depth as we move
+        up the column, where as the optical_depth() function calculates
+        along the entire column. 
+        
+        Args:
+            rhod (ndarray): 2D array
+
+        Returns:
+            1D array containing the integrated values along the third axis.
+        
+        """
+        
+        t = np.zeros(self.Nz)
+        surface_density = 0
+        for i in range(self.Nz):        
+            surface_density += rhod[i] * self.dz * self.sigma
+            t[i] = surface_density * self.kappa
+            
+        return t 
+
+    def calc_flux(self):
+        """
+        Calculate flux using sln for RT eqn (5.113)
+    
+        Args:
+            kappa (float): Dust opacity coefficient 
+        
+        Returns:
+            2D array containing the integrated values along the third axis.
+        """
+
+        if self.tau is None:
+            self.calc_tau()
+    
+        flux = np.zeros([self.Ny, self.Nx])
+        #Estimate flux according to optical thickness
+        src_fn = const.sigma_sb.cgs.value*self.T**4     
+
+        for i in range(self.Nx):
+            for j in range(self.Ny):
+                bb = np.zeros(self.Nz)
+                rhod = self.data[:,j,i] #1D array
+                t = self.calc_t(rhod)
+                mask = (rhod > 0)
+                bb[mask] = src_fn
+                flux[j, i] = np.trapz(bb*np.exp(-(self.tau[j,i]-t)), x=self.axis, dx=self.dx)
+    
+        self.flux = flux 
+
+        return 
+
+    def calc_mass_excess(self):
+        """
+        Calculates the mass_excess attributes.
+        """
+
+        if self.tau is None:
+            self.calc_tau()
+
+        #Source function should be per frequency (1mm wavelength ~ 230GHz)
+        src_fn_230 = self.blackbody(nu=230e9) 
+        
+        #If source fn is constant and region is optically thick (Eq. 5.120), assumes source function is constant from RT module notes)
+        flux_approx = src_fn_230 * (1-np.exp(-self.tau))
+        
+        #Sigma dust observer sees if optically thin assumption
+        sigma_dust = np.mean(flux_approx) / (src_fn_230*self.kappa)
+
+        self.observed_mass = sigma_dust*self.area  
+    
+        #Actual mass in box 
+        self.mass_excess = self.mass / self.observed_mass
+
+        return 
+        
+    def calc_filling_factor(self):
+        """
+        Calculates the filling factor attribute.
+        """
+
+        if self.tau is None:
+            self.calc_tau()
+
+        self.filling_factor = len(np.where(self.tau > 1)[0]) * self.Nw
+
+        return 
+
+    def plot_tau(self):
+        """
+        Plots the optical depth at the exit plane.
+        """
+
+        if self.tau is None:
+            self.calc_tau()
+
+        plt.contourf(self.axis, self.axis, np.log10(self.tau), np.linspace(-2,2,256))
+        plt.colorbar()
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Optical Depth')
+        plt.show()
+
+    def plot_flux(self):
+        """
+        Plots the outgoing at the exit plane.
+        """
+        if self.flux is None:
+            self.calc_flux()
+
+        plt.contourf(self.axis, self.axis, self.flux, 256)
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Flux')
+        plt.colorbar()
+        plt.show()
+
+
+
+
+def plot_filling_factor(filling_factor, sigma):
+    """
+    Plots Gas Column Density vs Filling Factor
+    """
+
+    gas_column_density = sigma * np.sqrt(2*np.pi) #Gas column density
+
+    plt.plot(gas_column_density, filling_factor, 'ro-')
+    plt.xscale('log')
+    plt.xlabel(r'$\Sigma_g \ (g / cm^2)$', size=20)
+    plt.ylabel('Filling Factor', size=20)
+    plt.show()
+
+def plot_mass_excess(self):
+    """
+    Plots Gas Column Density vs Mass Excess
+    """
+
+    gas_column_density = sigma * np.sqrt(2*np.pi) #Gas column density
+
+    plt.plot(gas_column_density, mass_excess, 'ro-')
+    plt.xscale('log')
+    plt.xlabel(r'$\Sigma_g \ (g / cm^2)$', size=20)
+    plt.ylabel('Mass Excess', size=20)
+    plt.show()
+
 def load_cube():
-    """
-    Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
-    period simulation of the streaming instability in a protoplanetary disk,
-    provided by Yang & Johansen (2014).
+        """
+        Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
+        period simulation of the streaming instability in a protoplanetary disk,
+        provided by Yang & Johansen (2014).
 
-    Returns:
-        The first output is the 3D array of the cube, the second output
-        is the axis array. This array can be used as either axis (z,y,x).
-    """
-    resource_package = __name__
-    resource_path = '/'.join(('data', 'density_cube_1.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    density_cube_1 = np.load(file)
+        Returns:
+            The first output is the 3D array of the cube, the second output
+            is the axis array. This array can be used as either axis (z,y,x).
+        """
+        resource_package = __name__
+        resource_path = '/'.join(('data', 'density_cube_1.npy'))
+        file = pkg_resources.resource_filename(resource_package, resource_path)
+        density_cube_1 = np.load(file)
 
-    resource_path = '/'.join(('data', 'density_cube_2.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    density_cube_2 = np.load(file)
+        resource_path = '/'.join(('data', 'density_cube_2.npy'))
+        file = pkg_resources.resource_filename(resource_package, resource_path)
+        density_cube_2 = np.load(file)
 
-    resource_path = '/'.join(('data', 'axis'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    axis = np.loadtxt(file)
+        resource_path = '/'.join(('data', 'axis'))
+        file = pkg_resources.resource_filename(resource_package, resource_path)
 
-    return np.r_[density_cube_1, density_cube_2], axis
+        data, axis = np.r_[density_cube_1, density_cube_2], np.loadtxt(file)
 
-def blackbody(T, nu):
-    """
-    Planck's law, which describes the black body radiation 
-    of a source in thermal equilibrium at a given temperature T.
-
-    Args:
-        T (float): Temperature of the source.
-        nu (ndarray): Array of frequencies.
-
-    Returns:
-        Spectral radiance of the source. 
-    """
-    bb = 2*h*nu**3 / (c**2*(np.exp(h*nu / (k*T)) - 1))
-
-    return bb
-
-def calculate_tau(density, axis, kappa, sigma):
-    """
-    Integrates density cube along the first axis
-    of the array. This function assumes a 3D cube with 
-    a uniform grid.
-    
-    Args:
-        density (ndarry): 3D array of densities.
-        axis (ndarray): 1D array of the axis along which to integrate.
-        kappa (float): Dust opacity coefficient.
-        sigma (float): Column density of the dust
-        
-    Returns:
-        2D array containing the integrated values along the third axis.
-    """
-    
-    dz = np.diff(axis)[0]
-    nx, ny = len(axis), len(axis)
-    
-    tau = np.zeros([ny, nx]) #python reverses order
-           
-    for i in range(nx):
-        for j in range(ny):
-            surface_density = np.trapz(density[:,j,i]) * dz * sigma
-            tau[j, i] = surface_density * kappa
-        
-    return tau
-
-def calculate_t(density, axis, kappa, sigma):
-    """
-    Optical depth with respect to z position along the column.
-    Integrates from z to L. This is the optical depth as we move
-    up the column, where as the optical_depth() function calculates
-    along the entire column. 
-    
-    This function assumes a 3D cube with uniform grid.
-    
-    Args:
-        density (ndarry): 3D array of densities.
-        axis (ndarray): 1D array of the axis along which to integrate.
-        kappa (float): Dust opacity coefficient 
-        
-    Returns:
-        1D array containing the integrated values along the third axis.
-    
-    """
-    
-    dz = np.diff(axis)[0]
-    nx, ny, nz = dim.nx, dim.ny, dim.nz
-    
-    t = np.zeros(nz)
-    
-    surface_density = 0
-    for k in range(nz):        
-        surface_density += density[k] * dz * sigma
-        t[k] = surface_density * kappa
-        
-    return t   
-
-def calculate_flux(density, tau, axis, T, kappa, sigma):
-    """
-    Calculate flux using sln for RT eqn (5.113)
-    
-    Args:
-        density (ndarry): 3D array of densities.
-        tau (ndarray): 2D array of optical depth.
-        axis (ndarray): 1D array of the axis along which to integrate.
-        T (float): Temperature.
-        kappa (float): Dust opacity coefficient 
-        
-    Returns:
-        2D array containing the integrated values along the third axis.
-    """
-    
-    dx = np.diff(axis)[0]
-    nx, ny, nz = dim.nx, dim.ny, dim.nz
-    flux = np.zeros([ny, nx])
-    
-    for i in range(nx):
-        print(i)
-        for j in range(ny):
-            bb = np.zeros(nz)
-            rhod = density[:,j,i] #1D array
-            t = calculate_t(rhod, axis=axis, kappa=kappa, sigma=sigma)
-            index = np.where(rhod > 0)[0]
-            bb[index] = sb*T**4
-            flux[j, i] = np.trapz(bb*np.exp(-(tau[j,i]-t)), x=axis, dx=dx)
-    
-    return flux
-
-###########
-h,k,c,sb,au= 6.626e-27, 1.3807e-16, 2.997e10, 5.67e-5,  const.au.cgs.value
-T = 30
-kappa_0 = 2e-4
-kappa = kappa_0 * T**2.1 #Opacity is function of T at low temperatures (See Table 2: https://iopscience.iop.org/article/10.1086/304514/pdf) & Figure 1 (https://arxiv.org/pdf/astro-ph/0308344.pdf)
-
-path = '/Users/daniel/Desktop/StreamingInstability_YJ14/StreamingInstability_YJ14/data/'
-cube1 = np.load(path+'density_cube_1.npy')
-cube2 = np.load(path+'density_cube_2.npy')
-
-axis = np.loadtxt(path+'axis')
-rhop = np.r_[cube1, cube2]
-
-# Calculate optical depth
-n = len(axis)
-nu = np.logspace(11,15,n)
-
-tau = calculate_tau(rhop, axis=axis, kappa=kappa, sigma=1000)
-
-plt.contourf(axis, axis, np.log10(tau), np.linspace(-2,2,256))
-plt.colorbar()
-plt.xlabel('x')
-plt.ylabel('y')
-plt.title('Optical Depth')
-plt.show()
-
-
-
-#Calcualte outgoing flux
-nx, ny = len(axis), len(axis)
-dx, dy, dz = np.diff(axis)[0], np.diff(axis)[0], np.diff(axis)[0]
-Nw = 1./(nx*ny)
-
-box_mass_codeunits = np.sum(rhop)* dx * dy * dz 
-
-H = 5*au 
-Lx=np.abs(axis[0]-axis[-1])*H #Length of the box in cm
-Ly=np.abs(axis[0]-axis[-1])*H #Length of the box in cm
-area = Lx*Ly
-
-src_fn = sb*T**4     #Estimate flux according to optical thickness
-
-n = 10
-sigma = np.linspace(1, 400, n)
-filling_factor = np.zeros(n)
-mass_excess = np.zeros(n)
-for i in range(n):
-    tau = calculate_tau(density=rhop, axis=axis, kappa=kappa, sigma=sigma[i])
-    filling_factor[i] = len(np.where(tau > 1)[0]) * Nw
-    #flux = calculate_flux(density=f.rhop, tau=tau, axis=z, T=T, kappa=kappa, sigma=sigma[i])
-
-    #emissivity = srf_cn * kappa
-    flux_approx = src_fn * (1-np.exp(-tau)) #If source fn is constant and region is optically thick (Eq. 5.120), assumes source function is constant from RT module notes)
-    
-    sigma_dust = np.mean(flux_approx) / (src_fn*kappa) #Sigma dust observer sees if optically thin assumption
-    
-    unit_mass = sigma[i] * H**2
-    box_mass = box_mass_codeunits * unit_mass #Total mass in box (actual)
-    observed_mass = sigma_dust*area  #Total mass of the dust in the box (observed)
-    
-    #tot_mass = sigma*dust_to_gas*area #Total mass in box (actual)
-    mass_excess[i] = box_mass / observed_mass
-
-    #arr = np.array([sigma_dust, mass, tot_mass, filling_factor, mass_excess])
-    #np.savetxt(path+'s0_'+str(i)+'.txt', arr)
-
-
-plt.plot(sigma, mass_excess, 'ro-')
-plt.xlabel(r'$\Sigma_d \ (g / cm^2)$', size=20)
-plt.ylabel('Mass Excess', size=20)
-plt.show()
-
-
-plt.plot(filling_factor, mass_excess, 'ro-')
-plt.xlabel('Filling Factor', size=20)
-plt.ylabel('Mass Excess', size=20)
-plt.show()
-
-
-plt.plot(sigma, filling_factor, 'ro-')
-plt.xlabel(r'$\Sigma_d \ (g / cm^2)$', size=20)
-plt.ylabel('Filling Factor', size=20)
-plt.show()
-
-print("Max flux :"+str(flux.max()))
-print("Min flux :"+str(flux.min()))
-print('Filling factor :'+str(len(np.where(tau > 1)[0]) / (tau.shape[0]*tau.shape[1])))
-plt.contourf(x, y, flux, 256)
-plt.title('Flux')
-plt.colorbar()
-plt.show()
+        return data, axis
 
