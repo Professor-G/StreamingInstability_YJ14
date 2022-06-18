@@ -13,7 +13,6 @@ warnings.filterwarnings("ignore")
 from pathlib import Path
 import pkg_resources
 
-
 class density_cube:
     """
     Class for a density cube object. The class methods
@@ -207,7 +206,7 @@ class density_cube:
         self.flux = flux 
 
         return 
-
+        
     def calc_mass_excess(self):
         """
         Calculates the mass_excess attributes.
