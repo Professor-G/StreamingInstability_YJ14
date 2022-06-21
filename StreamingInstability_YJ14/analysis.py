@@ -32,8 +32,8 @@ class density_cube:
             Defaults to 30.  
         kappa (float): Dust opacity coefficient (cm^2 / g)
         sigma (float): Column density of the gas 
-        H (int): Scale height of the box, defaults to 5.
-
+        H (int): Scale height of the box, the value is multiplied by one AU.
+            Defaults to 5.
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, kappa=1, H=5,
@@ -110,7 +110,7 @@ class density_cube:
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
         self.calc_tau()
-        self.calc_flux()
+        #self.calc_flux()
         self.calc_mass_excess()
         self.calc_filling_factor()
 
@@ -134,11 +134,10 @@ class density_cube:
 
     def calc_tau(self):
         """
-        Integrates density cube along the first axis
-        of the array. 
+        Integrates density along the z-axis to compute the optical depth.
         
         Returns:
-            2D array containing the integrated values along the third axis.
+            2D array containing the optical depth values.
         """
         
         tau = np.zeros([self.Ny, self.Nx]) #python reverses order
@@ -155,16 +154,15 @@ class density_cube:
     def calc_t(self, rhod):
         """
         Optical depth with respect to z position along the column.
-        Integrates from z to L. This is the optical depth as we move
+        Integrates from z to L. This is the optical depth as emission progresses
         up the column, where as the optical_depth() function calculates
         along the entire column. 
         
         Args:
-            rhod (ndarray): 2D array
+            rhod (ndarray): 1D array of densities, along the given cell column.
 
         Returns:
-            1D array containing the integrated values along the third axis.
-        
+            1D array containing the cumulative optical depth along the column.
         """
         
         t = np.zeros(self.Nz)
@@ -178,10 +176,7 @@ class density_cube:
 
     def calc_flux(self):
         """
-        Calculate flux using sln for RT eqn (5.113)
-    
-        Args:
-            kappa (float): Dust opacity coefficient 
+        Calculate outgoing flux using solution for RT eqn (5.113)
         
         Returns:
             2D array containing the integrated values along the third axis.
@@ -191,7 +186,7 @@ class density_cube:
             self.calc_tau(self)
     
         flux = np.zeros([self.Ny, self.Nx])
-        #Estimate flux according to optical thickness
+        #Estimate flux assuming optically thick
         src_fn = const.sigma_sb.cgs.value*self.T**4     
 
         for i in range(self.Nx):
@@ -210,6 +205,9 @@ class density_cube:
     def calc_mass_excess(self):
         """
         Calculates the mass_excess attributes.
+
+        Returns:
+            Float.
         """
 
         if self.tau is None:
@@ -218,10 +216,10 @@ class density_cube:
         #Source function should be per frequency (1mm wavelength ~ 230GHz)
         src_fn_230 = self.blackbody(nu=230e9) 
         
-        #If source fn is constant and region is optically thick (Eq. 5.120), assumes source function is constant from RT module notes)
+        #If source fn is constant and region is optically thick (Eq. 5.120)
         flux_approx = src_fn_230 * (1-np.exp(-self.tau))
         
-        #Sigma dust observer sees if optically thin assumption
+        #Sigma dust observer sees if optically thin 
         sigma_dust = np.mean(flux_approx) / (src_fn_230*self.kappa)
 
         self.observed_mass = sigma_dust*self.area  
@@ -234,12 +232,15 @@ class density_cube:
     def calc_filling_factor(self):
         """
         Calculates the filling factor attribute.
+
+        Returns:
+            Float.
         """
 
         if self.tau is None:
             self.calc_tau(self)
 
-        self.filling_factor = len(np.where(self.tau > 1)[0]) * self.Nw
+        self.filling_factor = len(np.where(self.tau >= 1)[0]) * self.Nw
 
         return 
 
@@ -273,9 +274,6 @@ class density_cube:
         plt.colorbar()
         plt.show()
 
-
-
-
 def plot_filling_factor(filling_factor, sigma):
     """
     Plots Gas Column Density vs Filling Factor
@@ -304,29 +302,29 @@ def plot_mass_excess(column_density, mass_excess):
     plt.show()
 
 def load_cube():
-        """
-        Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
-        period simulation of the streaming instability in a protoplanetary disk,
-        provided by Yang & Johansen (2014).
+    """
+    Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
+    period simulation of the streaming instability in a protoplanetary disk,
+    provided by Yang & Johansen (2014).
 
-        Returns:
-            The first output is the 3D array of the cube, the second output
-            is the axis array. This array can be used as either axis (z,y,x).
-        """
-        resource_package = __name__
-        resource_path = '/'.join(('data', 'density_cube_1.npy'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        density_cube_1 = np.load(file)
+    Returns:
+        The first output is the 3D array of the cube, the second output
+        is the axis array. This array can be used as either axis (z,y,x).
+    """
+    resource_package = __name__
+    resource_path = '/'.join(('data', 'density_cube_1.npy'))
+    file = pkg_resources.resource_filename(resource_package, resource_path)
+    density_cube_1 = np.load(file)
 
-        resource_path = '/'.join(('data', 'density_cube_2.npy'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        density_cube_2 = np.load(file)
+    resource_path = '/'.join(('data', 'density_cube_2.npy'))
+    file = pkg_resources.resource_filename(resource_package, resource_path)
+    density_cube_2 = np.load(file)
 
-        resource_path = '/'.join(('data', 'axis'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
+    resource_path = '/'.join(('data', 'axis'))
+    file = pkg_resources.resource_filename(resource_package, resource_path)
 
-        data, axis = np.r_[density_cube_1, density_cube_2], np.loadtxt(file)
+    data, axis = np.r_[density_cube_1, density_cube_2], np.loadtxt(file)
 
-        return data, axis
+    return data, axis
 
 
