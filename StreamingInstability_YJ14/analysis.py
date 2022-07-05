@@ -25,13 +25,12 @@ class density_cube:
         about each axis. 
 
     Args:
-        density (ndarry): 3D density cube.
+        data (ndarry): 3D density cube.
         axis (ndarray): 1D array of the axis along which to integrate.
-        column_density : Column density of the gas (g / cm^2)
+        column_density : Column density of the gas (g / cm^2). Defaults to 100.
         T (float): Temperature of the entire box, as this model is isothermal.
             Defaults to 30.  
-        kappa (float): Dust opacity coefficient (cm^2 / g)
-        sigma (float): Column density of the gas 
+        kappa (float): Dust opacity coefficient (cm^2 / g). Defaults to 1. 
         H (int): Scale height of the box, the value is multiplied by one AU.
             Defaults to 5.
     """
@@ -69,15 +68,17 @@ class density_cube:
         self.filling_factor = None 
         self.Nw = None
         self.area = None 
-        self.mass = None
 
         self.configure()
 
-    def configure(self):
+    def configure(self, nu=230e9):
         """
         Initializing parameters and creates flux, mass excess, and filling factor 
         attributes. If sigma, H, or dx/dy/dz attributes are updated, re-run this method 
         to re-configure the object.
+
+        Args:
+            nu (float): Frequency at which to calculate the observed flux and thus mass excess.
         """
        #print('Initializing parameters and attributes...')
         if self.Nz is None:
@@ -106,12 +107,11 @@ class density_cube:
         self.area = self.Lx * self.Ly
             
         #Code units
-        box_mass_codeunits = np.sum(self.data)* self.dx * self.dy * self.dz 
+        box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
         self.calc_tau()
-        #self.calc_flux()
-        self.calc_mass_excess()
+        self.calc_mass_excess(nu=nu)
         self.calc_filling_factor()
 
         return 
@@ -202,19 +202,22 @@ class density_cube:
 
         return 
         
-    def calc_mass_excess(self):
+    def calc_mass_excess(self, nu=230e9):
         """
         Calculates the mass_excess attributes.
+        
+        nu (float): Frequency at which to calculate the flux. Defaults to 1mm frequency.
 
         Returns:
             Float.
+
         """
 
         if self.tau is None:
             calc_tau(self)
 
         #Source function should be per frequency (1mm wavelength ~ 230GHz)
-        src_fn_230 = self.blackbody(nu=230e9) 
+        src_fn_230 = self.blackbody(nu=nu) 
         
         #If source fn is constant and region is optically thick (Eq. 5.120)
         flux_approx = src_fn_230 * (1-np.exp(-self.tau))
@@ -223,8 +226,6 @@ class density_cube:
         sigma_dust = np.mean(flux_approx) / (src_fn_230*self.kappa)
 
         self.observed_mass = sigma_dust*self.area  
-    
-        #Actual mass in box 
         self.mass_excess = self.mass / self.observed_mass
 
         return 
