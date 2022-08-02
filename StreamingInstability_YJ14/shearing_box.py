@@ -298,7 +298,6 @@ class density_cube:
         plt.colorbar()
         plt.show()
 
-
 def load_cube():
     """
     Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
