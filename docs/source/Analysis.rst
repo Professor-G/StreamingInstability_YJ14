@@ -5,17 +5,17 @@ Analysis
 
 For technical information on the model we employed in this research, please see the page on `streaming instability <https://streaminginstability-yj14.readthedocs.io/en/latest/source/Streaming%20Instability.html>`_.
 
-Outlined below is the procedure the `density_cube` class executes upon initlization. 
+Outlined below is the procedure the `density_cube <https://streaminginstability-yj14.readthedocs.io/en/latest/autoapi/StreamingInstability_YJ14/shearing_box/index.html#StreamingInstability_YJ14.shearing_box.density_cube>`_ class executes upon initilization. 
 
 .. figure:: _static/3d_cube.png
     :align: center
 |
 
 
-1) Sharing Box
+1) Shearing Box
 -----------
 
-We first define the size to the shearing box in terms of the scale height, H, which we have taken to be 5 AU. In scale units, the shearing box has dimensions of 1.6 H along each axis, thus making the length $\approx 1.2 \times 10^{14} \ \text{cm}$. The controllable parameters includes the temperature of the disk, :math:`T`, which we have assumed to be isothermal, as well as the column density of the gas, :math:`\Sigma_g`, and the frequency-dependent dust opacity coefficient, :math:`\kappa_\nu`; also in cgs units. We parameterize the column density, in code units, as follows: 
+We first define the size to the density cube in terms of the scale height, H, which we have taken to be 5 AU. In scale units, the shearing box has dimensions of 1.6 H along each axis, thus making the length :math:`\approx 1.2 \times 10^{14} \ \text{cm}`. The controllable parameters includes the temperature of the disk, :math:`T`, which we have assumed to be isothermal, as well as the column density of the gas, :math:`\Sigma_g`, and the frequency-dependent dust opacity coefficient, :math:`\kappa_\nu`; also in cgs units. We parameterize the column density, in code units, as follows: 
 
 .. math::
     \Sigma_{unit} = \frac{\Sigma_g}{2\pi},
