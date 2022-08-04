@@ -83,7 +83,7 @@ At period 0, before the streaming instabilities begin and the dust settles to th
 
     Figure 1: Mass Excess as a function of period. Gas column density, :math:`\Sigma_g` = 60 :math:`g \ cm^{-2}`.
 
-.. figure:: _static/60_me.png
+.. figure:: _static/60_me_masked.png
     :align: center
     :class: with-shadow with-border
     :width: 1200px
@@ -91,4 +91,11 @@ At period 0, before the streaming instabilities begin and the dust settles to th
     Figure 2: Mass Excess as a function of period, calculated only in the optically thick regions where :math:`\tau >` 1. Gas column density, :math:`\Sigma_g` = 60 :math:`g \ cm^{-2}`.
 
 
+A heatmap of the mass excess metric at the final period (P = 100) is shown below:
 
+.. figure:: _static/me_full.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+    Figure 3: Mass Excess as a function of opacity and gas column density.
