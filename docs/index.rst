@@ -16,8 +16,8 @@ Clone the GitHub repository:
 .. code-block:: bash
 
     git clone https://github.com/Professor-G/StreamingInstability_YJ14.git
-    python setup.py -U install
-    pip install -r requirements.txt
+    cd StreamingInstability_YJ14
+    pip install .
 
 
 Pages
