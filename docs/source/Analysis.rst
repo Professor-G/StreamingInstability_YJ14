@@ -50,7 +50,7 @@ We calculate the optical depth along each x,y column, and combine the output to 
 .. math::
     B_{\nu,T} = \frac{2h\nu^3}{c^2} \ \frac{1}{e^\frac{h\nu}{k_BT} - 1}.
 
-This constant source function is an approximation in the isothermal disk assumption, in which only glowing gas and dust is observed. The actual intensity leaving the x,y exit plane, under the assumption of optically thin emission, is given by
+This constant source function is an approximation in the isothermal disk assumption, in which only glowing gas and dust is observed. The intensity leaving the x,y exit plane, in the case of a constant source function, is given by
 
 .. math::
     I_\nu = B_{\nu,T} \ (1 - e^{-\tau_{xy}}).
