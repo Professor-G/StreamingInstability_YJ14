@@ -72,7 +72,7 @@ where :math:`L_x` and :math:`L_y` are the lengths of the box along the :math:`x`
 
 This mass excess represents the mass hidden in optically thick regions, mass that is not accounted for during observations as the flux is undercalculated under the optically thin assumption.
 
-We first explored what the mass excess would when observing an isothermal disk with :math:`T=30` K and :math:`\Sigma_g = 60 g \text{cm}^{-2}`. We assume mm-wave emission, with a corresponding frequency of ~230GHz, and dust opacity coefficient of :math:`\kappa_nu` = 1. The mass excess as a function of period is displayed in Figure 1.
+We first explored what the mass excess would when observing an isothermal disk with :math:`T=30` K and :math:`\Sigma_g = 60 \ g \ \text{cm}^{-2}`. We assume mm-wave emission, with a corresponding frequency of ~230GHz, and dust opacity coefficient of :math:`\kappa_\nu` = 1. The mass excess as a function of period is displayed in Figure 1.
 
 At period 0, before the streaming instabilities begin and the dust settles to the midplane, the box is one of constant density, and at this point the mass excess is approximate 1.5. The streaming instability in effect increases the optical depth in filamentary regions, in turn reducing the filling factor as more and more material is concentrated locally. As this occurs, period after period, the mass excess increases until reaching a mass excess of ~2 toward the end of the simulation. We note that this mass excess is diluted by the area of the box, as in our simulation the streaming instabilities produce 5-6 high density, filamentary structures. If our instruments could resolve these filaments, the mass excess in these regions alone increases significantly, reaching 3 orders of magnitude by the 80th period (Figure 2).
 
@@ -90,8 +90,7 @@ At period 0, before the streaming instabilities begin and the dust settles to th
 
     Figure 2: Mass Excess as a function of period, calculated only in the optically thick regions where :math:`\tau >` 1. Gas column density, :math:`\Sigma_g` = 60 :math:`g \ cm^{-2}`.
 
-
-A heatmap of the mass excess metric at the final period (P = 100) is shown below:
+A heatmap of the mass excess metric, at the final period (P = 100) is shown in Figure 3, with the accompanying filling factor displayed in Figure 4:
 
 .. figure:: _static/me_full.png
     :align: center
@@ -99,3 +98,13 @@ A heatmap of the mass excess metric at the final period (P = 100) is shown below
     :width: 1200px
 
     Figure 3: Mass Excess as a function of opacity and gas column density.
+
+.. figure:: _static/ff_full.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+    Figure 4: Filling Factor as a function of opacity and gas column density.
+
+
+
