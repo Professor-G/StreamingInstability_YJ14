@@ -31,8 +31,8 @@ class density_cube:
         T (float): Temperature of the entire box, as this model is isothermal.
             Defaults to 30.  
         kappa (float): Dust opacity coefficient (cm^2 / g). Defaults to 1. 
-        H (int): Scale height of the box, the value is multiplied by one AU.
-            Defaults to 5.
+        H (int): Scale height of the box, the value is multiplied by one AU,
+            in cgs units. Defaults to 5.
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, kappa=1, H=5,
@@ -103,9 +103,7 @@ class density_cube:
             self.Ly = np.abs(self.axis[0] - self.axis[-1])*self.H 
 
         self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
-        #Observed mass of the dust in the box
         self.area = self.Lx * self.Ly
-            
         #Code units
         box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2
@@ -183,7 +181,7 @@ class density_cube:
         """
 
         if self.tau is None:
-            self.calc_tau(self)
+            self.calc_tau()
     
         flux = np.zeros([self.Ny, self.Nx])
         #Estimate flux assuming optically thick
@@ -218,7 +216,7 @@ class density_cube:
         """
 
         if self.tau is None:
-            calc_tau(self)
+            self.calc_tau()
 
         #Source function should be per frequency (1mm wavelength ~ 230GHz)
         src_fn_230 = self.blackbody(nu=nu) 
@@ -263,7 +261,7 @@ class density_cube:
         """
 
         if self.tau is None:
-            self.calc_tau(self)
+            self.calc_tau()
 
         self.filling_factor = len(np.where(self.tau >= 1)[0]) * self.Nw
 
@@ -275,12 +273,12 @@ class density_cube:
         """
 
         if self.tau is None:
-            self.calc_tau(self)
+            self.calc_tau()
 
         plt.contourf(self.axis, self.axis, np.log10(self.tau), np.linspace(-2,2,256))
         plt.colorbar()
-        plt.xlabel('x')
-        plt.ylabel('y')
+        plt.xlabel('x (H)')
+        plt.ylabel('y (H)')
         plt.title('Optical Depth')
         plt.show()
 
@@ -289,11 +287,11 @@ class density_cube:
         Plots the outgoing flux at the exit plane.
         """
         if self.flux is None:
-            self.calc_flux(self)
+            self.calc_flux()
 
         plt.contourf(self.axis, self.axis, self.flux, 256)
-        plt.xlabel('x')
-        plt.ylabel('y')
+        plt.xlabel('x (H)')
+        plt.ylabel('y (H)')
         plt.title('Flux')
         plt.colorbar()
         plt.show()
