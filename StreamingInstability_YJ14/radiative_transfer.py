@@ -7,6 +7,7 @@ Created on Thu Aug 9 06:08:45 2021
 """
 
 import astropy.constants as const
+import warnings 
 warnings.filterwarnings("ignore")
 import numpy as np
 
@@ -98,7 +99,7 @@ def calc_flux(data, axis, kappa, T, column_density):
     dz = np.diff(axis)[0]
     unit_sigma = column_density / np.sqrt(2*np.pi)
     
-    tau = calc_tau(data, axis, kappa, unit_sigma)
+    tau = calc_tau(data=data, axis=axis, kappa=kappa, column_density=column_density)
     flux = np.zeros([Ny, Nx])
 
     #Flux assuming optically thick
@@ -108,7 +109,7 @@ def calc_flux(data, axis, kappa, T, column_density):
         for j in range(Ny):
             bb = np.zeros(Nz)
             rhod = data[:,j,i] 
-            t = calc_t(rhod, kappa, axis, unit_sigma)
+            t = calc_t(rhod=rhod, axis=axis, kappa=kappa, column_density=column_density)
             mask = (rhod > 0)
             bb[mask] = src_fn
             flux[j, i] = np.trapz(bb*np.exp(-(tau[j,i]-t)), x=axis, dx=dz)

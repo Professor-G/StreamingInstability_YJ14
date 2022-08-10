@@ -5,11 +5,11 @@ Created on Thu Aug 9 06:08:45 2021
 
 @author: daniel
 """
-
-import astropy.constants as const
-warnings.filterwarnings("ignore")
 import numpy as np
-from StreamingInstability_JY14 import radiative_transfer 
+import astropy.constants as const
+import warnings 
+warnings.filterwarnings("ignore")
+from StreamingInstability_YJ14 import radiative_transfer 
 
 def calc_mass(data, axis, column_density, H):
     """
