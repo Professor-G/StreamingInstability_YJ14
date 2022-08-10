@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     test_suite="nose.collector",
     package_data={
-    '': ['density_cube_1.npy', 'density_cube_2.npy'],
+    '': ['density_cube_1.npy', 'density_cube_2.npy', 'axis'],
 },
 
 )
