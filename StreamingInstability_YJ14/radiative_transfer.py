@@ -33,7 +33,7 @@ def calc_tau(data, axis, kappa, column_density):
     Integrates density along the z-axis to compute the optical depth.
 
     Args:
-         data (ndarry): 3D density cube.
+        data (ndarry): 3D density cube.
         axis (ndarray): 1D array of the axis along which to integrate.
         kappa (float): Dust opacity coefficient in cm^2 / g.
         column_density : Column density of the gas in g / cm^2.
@@ -101,7 +101,7 @@ def calc_flux(data, axis, kappa, T, column_density):
     tau = calc_tau(data, axis, kappa, unit_sigma)
     flux = np.zeros([Ny, Nx])
 
-    #Estimate flux assuming optically thick
+    #Flux assuming optically thick
     src_fn = const.sigma_sb.cgs.value*T**4     
 
     for i in range(Nx):
