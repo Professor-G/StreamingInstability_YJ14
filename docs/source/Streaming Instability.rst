@@ -24,11 +24,11 @@ Streaming Instability
 
    .. figure:: _static/me_T30.gif
 
-      Figure 2: Mass excess heatmap, T = 30 K.
+      Figure 3: Mass excess heatmap, T = 30 K.
 
 
 .. only:: html
 
    .. figure:: _static/me_T50.gif
 
-      Figure 2: Mass excess heatmap, T = 50 K.
+      Figure 4: Mass excess heatmap, T = 50 K.
