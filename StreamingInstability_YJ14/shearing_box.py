@@ -12,6 +12,7 @@ import astropy.constants as const
 warnings.filterwarnings("ignore")
 from pathlib import Path
 import pkg_resources
+from scipy.interpolate import UnivariateSpline
 
 class density_cube:
     """
@@ -36,7 +37,8 @@ class density_cube:
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, kappa=1, H=5,
-        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
+        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None,
+        stoke, rho_grain):
 
         self.data = data
         self.axis = axis 
@@ -52,6 +54,14 @@ class density_cube:
         self.dz = dz 
         self.dy = dy 
         self.dx = dx 
+        self.stoke = stoke 
+        self.rho_grain = rho_grain
+        try: 
+            len(stoke)
+            if len(stoke) != len(rho_grain)
+                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be of same size!")
+        except:
+            pass 
 
         if self.data is None:
             print('No data input, automatically loading default density cube.')
@@ -68,6 +78,8 @@ class density_cube:
         self.filling_factor = None 
         self.Nw = None
         self.area = None 
+        self.grain_size = None 
+
 
         self.configure()
 
@@ -111,6 +123,10 @@ class density_cube:
         self.calc_tau()
         self.calc_mass_excess(nu=nu)
         self.calc_filling_factor()
+        try:
+            self.calc_grain_size()
+        except:
+            print('To calculate grain size input stoke and rho_grain parameters.')
 
         return 
 
@@ -251,7 +267,59 @@ class density_cube:
         self.mass_excess = self.mass / self.observed_mass
 
         return 
+
+    def calc_grain_size():
+        """
+        Calculates grain size given stokes number and 
+        gas column density.
+
+        st (float): Stoke's number
+        rho_g (float): Internal grain density, approximately
+            1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates
+        """
+
+        if isinstance(self.stoke, np.ndarray) is False:
+            self.grain_size = self.stoke * 2. * self.column_density / np.pi / self.rho_grain
+        else:
+            if isinstance(self.rho_grain, np.ndarray) is False:
+                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be of same size!")
+            self.grain_size = np.zeros(len(self.stoke))
+            for grain in range(len(self.grain_size)):
+                self.grain_size[grain] = self.stoke[grain] * 2. * self.column_density / np.pi / self.rho_grain[grain]
         
+        return
+
+    def extract_opacity():
+        """
+        Returns opacity according to grain size
+        and wavelength
+        """
+        if self.grain_size is None:
+            try:
+                self.calc_grain_size()
+            except:
+                raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
+
+        a, k_abs, k_sca = load_fig4_values()
+        k_abs_fit = UnivariateSpline(a, k_abs, k=3)
+        k_sca_fit = UnivariateSpline(a, k_sca, k=3)
+
+        if isinstance(self.grain_size, np.ndarray) is False:
+            if self.grain_size > a.max():
+                raise ValueError('Maximum grain size supported is '+str(a.max()))
+            if self.grain_size < a.min():
+                raise ValueError('Minimum grain size supported is '+str(a.min()))
+            self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
+
+        else:
+            if self.grain_size.max() > a.max():
+                raise ValueError('Maximum grain size supported is '+str(a.max()))
+            if self.grain_size.min() < a.min():
+                raise ValueError('Minimum grain size supported is '+str(a.min()))
+            self.kappa = np.zeros(len(self.grain_size))
+            for grain in self.grain_size:
+                self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
+
     def calc_filling_factor(self):
         """
         Calculates the filling factor attribute.
@@ -322,4 +390,18 @@ def load_cube():
 
     return data, axis
 
+def load_fig4_values():
+    """
+    Loads the opacity values taken from DSHARP
+    """
+    resource_package = __name__
+    resource_path = '/'.join(('data', 'dsharp_fig4_values'))
+    file = pkg_resources.resource_filename(resource_package, resource_path)
+    values = np.loadtxt(file)
+    a, k_abs, k_sca = values[:,0], values[:,1], values[:,2]
+
+    order = np.array(a).argsort()
+    a, k_abs, k_sca = a[order], k_abs[order], k_sca[order]
+
+    return a, k_abs, k_sca
 
