@@ -34,11 +34,15 @@ class density_cube:
         kappa (float): Dust opacity coefficient (cm^2 / g). Defaults to 1. 
         H (int): Scale height of the box, the value is multiplied by one AU,
             in cgs units. Defaults to 5.
+
+
+        st (float): Stoke's number
+        rho_g (float): Internal grain density, approximately
+            1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, kappa=1, H=5,
-        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None,
-        stoke, rho_grain):
+        stoke=0.3, rho_grain=1.0, Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
 
         self.data = data
         self.axis = axis 
@@ -58,7 +62,7 @@ class density_cube:
         self.rho_grain = rho_grain
         try: 
             len(stoke)
-            if len(stoke) != len(rho_grain)
+            if len(stoke) != len(rho_grain):
                 raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be of same size!")
         except:
             pass 
@@ -268,14 +272,10 @@ class density_cube:
 
         return 
 
-    def calc_grain_size():
+    def calc_grain_size(self):
         """
         Calculates grain size given stokes number and 
-        gas column density.
-
-        st (float): Stoke's number
-        rho_g (float): Internal grain density, approximately
-            1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates
+        gas column density
         """
 
         if isinstance(self.stoke, np.ndarray) is False:
@@ -289,7 +289,7 @@ class density_cube:
         
         return
 
-    def extract_opacity():
+    def extract_opacity(self):
         """
         Returns opacity according to grain size
         and wavelength
@@ -310,7 +310,6 @@ class density_cube:
             if self.grain_size < a.min():
                 raise ValueError('Minimum grain size supported is '+str(a.min()))
             self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
-
         else:
             if self.grain_size.max() > a.max():
                 raise ValueError('Maximum grain size supported is '+str(a.max()))
@@ -319,6 +318,8 @@ class density_cube:
             self.kappa = np.zeros(len(self.grain_size))
             for grain in self.grain_size:
                 self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
+
+        return 
 
     def calc_filling_factor(self):
         """
