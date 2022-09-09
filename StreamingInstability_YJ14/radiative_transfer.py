@@ -11,6 +11,11 @@ import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
 
+####################
+### These are standalone functions, for efficiency these
+### have been integrated as methods in the shearing_box.density_cube() Class
+####################
+
 def blackbody(nu, T):
     """
     Planck's law, which describes the black body radiation 

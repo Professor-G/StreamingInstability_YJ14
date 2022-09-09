@@ -21,11 +21,11 @@ class density_cube:
     of conditions.
 
     Note:
-        The class methods assume that the 3D cube is symmetrical and
+        The class methods assume that the 3D cube is symmetrical
         about each axis. 
 
     Args:
-        data (ndarry): 3D density cube.
+        data (ndarry): 3D density cube, containing particle density.
         axis (ndarray): 1D array of the axis along which to integrate.
         column_density : Column density of the gas (g / cm^2). Defaults to 100.
         T (float): Temperature of the entire box, as this model is isothermal.
@@ -277,9 +277,9 @@ class density_cube:
 
         plt.contourf(self.axis, self.axis, np.log10(self.tau), np.linspace(-2,2,256))
         plt.colorbar()
-        plt.xlabel('x (H)')
-        plt.ylabel('y (H)')
-        plt.title('Optical Depth')
+        plt.xlabel('x (H)', size=16)
+        plt.ylabel('y (H)', size=16)
+        plt.title('Optical Depth', size=18)
         plt.show()
 
     def plot_flux(self):
@@ -290,9 +290,9 @@ class density_cube:
             self.calc_flux()
 
         plt.contourf(self.axis, self.axis, self.flux, 256)
-        plt.xlabel('x (H)')
-        plt.ylabel('y (H)')
-        plt.title('Flux')
+        plt.xlabel('x (H)', size=16)
+        plt.ylabel('y (H)', size=16)
+        plt.title('Flux', size=18)
         plt.colorbar()
         plt.show()
 

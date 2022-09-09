@@ -11,6 +11,11 @@ import warnings
 warnings.filterwarnings("ignore")
 from StreamingInstability_YJ14 import radiative_transfer 
 
+####################
+### These are standalone functions, for efficiency these
+### have been integrated as methods in the shearing_box.density_cube() Class
+####################
+
 def calc_mass(data, axis, column_density, H):
     """
     Calculates the mass inside the density cube.
@@ -114,5 +119,44 @@ def calc_mass_excess(data, axis, kappa, column_density, T, H, nu=230e9, mask_tau
     mass_excess = mass / observed_mass
 
     return mass_excess
+
+
+def getmass(radius, npar, nx, rhopswarm, column_density):
+
+    i = np.where(radius!=0)
+    eps_dtog=0.03
+    #column_density = 44.565547740180705  # g/cm2                                                                                                                                                         
+    au = 1.49e13
+    r = 20*au
+    Hp = 0.1*r
+    Lx = 4*Hp
+    Ly = 16*Hp
+    Lz = 2*Hp
+    area=Lx*Ly
+    mass_box = Lx*Ly*column_density
+    dx = Lx/nx
+    dy = Ly/nx
+    dz = Lz/nx
+    sigma = column_density
+    rho0 = sigma / np.sqrt(2*np.pi) / Hp
+    cell_volume = dx*dy*dz
+    mp_code = eps_dtog * mass_box / npar
+    mp = stats.mode(rhopswarm)[0]
+    npclump = rhopswarm[i]/mp
+    Mmars = 6.39e26
+    Mearth=5.972e27
+    tmp = np.log10(npclump)
+    fac = mp_code                                                                                                                                                                                 
+    ttmp = tmp + np.log10(fac)
+
+    mass = 10**ttmp
+
+    return np.sort(mass/Mearth)
+
+
+#mass = getmass(fp.aps,npar,256,fp.rhopswarm)
+#fp = pc.read_pvar(datadir=datadir,varfile=‘PVAR’+str(ivar))
+#pdim=pc.read_pdim(datadir=datadir)
+#npar = pdim.npar
 
 
