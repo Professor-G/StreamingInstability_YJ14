@@ -12,7 +12,9 @@ import astropy.constants as const
 warnings.filterwarnings("ignore")
 from pathlib import Path
 import pkg_resources
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
+from scipy import stats  
+
 
 class density_cube:
     """
@@ -41,8 +43,9 @@ class density_cube:
             1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates
     """
     
-    def __init__(self, data=None, axis=None, column_density=100, T=30, kappa=1, H=5,
-        stoke=0.3, rho_grain=1.0, Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
+    def __init__(self, data=None, axis=None, column_density=100, T=30, H=5,
+        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, kappa=None, 
+        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
 
         self.data = data
         self.axis = axis 
@@ -60,6 +63,10 @@ class density_cube:
         self.dx = dx 
         self.stoke = stoke 
         self.rho_grain = rho_grain
+        self.eps_dtog = eps_dtog
+        self.npar = npar
+        self.aps = aps 
+        self.rhopswarm = rhopswarm
         try: 
             len(stoke)
             if len(stoke) != len(rho_grain):
@@ -83,7 +90,7 @@ class density_cube:
         self.Nw = None
         self.area = None 
         self.grain_size = None 
-
+        self.proto_mass = None 
 
         self.configure()
 
@@ -124,15 +131,19 @@ class density_cube:
         box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
+
+        if self.kappa is None:
+            try:
+                self.calc_grain_size()
+                self.extract_opacity()
+            except:
+                raise ValueError('Cannot calculate kappa -- to calculate grain size input stoke and rho_grain parameters.')
+
         self.calc_tau()
         self.calc_mass_excess(nu=nu)
         self.calc_filling_factor()
-        try:
-            self.calc_grain_size()
-        except:
-            print('To calculate grain size input stoke and rho_grain parameters.')
-
-        return 
+        if self.aps is not None and self.rhopswarm is not None:
+            self.get_proto_mass()
 
     def blackbody(self, nu):
         """
@@ -301,8 +312,8 @@ class density_cube:
                 raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
 
         a, k_abs, k_sca = load_fig4_values()
-        k_abs_fit = UnivariateSpline(a, k_abs, k=3)
-        k_sca_fit = UnivariateSpline(a, k_sca, k=3)
+        k_abs_fit = interp1d(a, k_abs)
+        k_sca_fit = interp1d(a, k_sca)
 
         if isinstance(self.grain_size, np.ndarray) is False:
             if self.grain_size > a.max():
@@ -320,6 +331,36 @@ class density_cube:
                 self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
 
         return 
+
+    def get_proto_mass(self):
+        """
+        Calculates the mass of the protoplanets
+
+        Args:
+            radius (ndarray):
+            npar (int):
+            nx (int):
+            rhopswarm (float):
+            column_density (float):
+            eps_dtog (float):
+
+        Returns:
+            Mass of the forming protoplanets
+        """
+
+        mp_code = self.eps_dtog * self.mass / self.npar
+        mp = stats.mode(self.rhopswarm)[0]
+
+        index = np.where(self.aps != 0)[0]
+        npclump = self.rhopswarm[index] / mp
+
+        tmp = np.log10(npclump)
+        ttmp = tmp + np.log10(mp_code)
+        mass = 10**ttmp
+
+        self.proto_mass = np.sort(mass/5.972e27) #In terms of M_Earth
+
+        return
 
     def calc_filling_factor(self):
         """
