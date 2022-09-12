@@ -16,9 +16,9 @@ from StreamingInstability_YJ14 import radiative_transfer
 ### have been integrated as methods in the shearing_box.density_cube() Class
 ####################
 
-def calc_mass(data, axis, column_density, H):
+def calc_cube_mass(data, axis, column_density, H):
     """
-    Calculates the mass inside the density cube.
+    Calculates the total mass inside the density cube.
     
     Args:
         data (ndarray): 3D density cube.
@@ -33,20 +33,19 @@ def calc_mass(data, axis, column_density, H):
     H = H*const.au.cgs.value
     Nx = Ny = Nz = len(axis)
     dx = dy = dz = np.diff(axis)[0]
-    Lx = Ly = np.abs(axis[0] - axis[-1])*H 
 
     unit_sigma = column_density / np.sqrt(2*np.pi)
-    area = Lx*Ly
     box_mass_codeunits = np.sum(data) * dx * dy * dz 
     unit_mass = unit_sigma * H**2
     mass = box_mass_codeunits * unit_mass 
 
     return mass 
 
-
 def calc_mass_excess(data, axis, kappa, column_density, T, H, nu=230e9, mask_tau=False, threshold=1):
     """
-    Calculates the mass_excess attribute.
+    Calculates the mass_excess, defined as the observed mass
+    given the optically thin assumption, divided by the true mass
+    of the system.
     
     Args:
         data (ndarry): 3D density cube.
@@ -74,7 +73,7 @@ def calc_mass_excess(data, axis, kappa, column_density, T, H, nu=230e9, mask_tau
         Float.
     """
 
-    mass = calc_mass(data=data, axis=axis, column_density=column_density, H=H)
+    mass = calc_cube_mass(data=data, axis=axis, column_density=column_density, H=H)
 
     H = H*const.au.cgs.value
     Nx = Ny = Nz = len(axis)
@@ -121,41 +120,38 @@ def calc_mass_excess(data, axis, kappa, column_density, T, H, nu=230e9, mask_tau
     return mass_excess
 
 
-def getmass(radius, npar, nx, rhopswarm, column_density):
+def getmass(radius, axis, npar, rhopswarm, column_density H,
+    eps_dtog):
+    """
+    Calculates the mass of the protoplanets
 
-    i = np.where(radius!=0)
-    eps_dtog=0.03
-    #column_density = 44.565547740180705  # g/cm2                                                                                                                                                         
-    au = 1.49e13
-    r = 20*au
-    Hp = 0.1*r
-    Lx = 4*Hp
-    Ly = 16*Hp
-    Lz = 2*Hp
-    area=Lx*Ly
-    mass_box = Lx*Ly*column_density
-    dx = Lx/nx
-    dy = Ly/nx
-    dz = Lz/nx
-    sigma = column_density
-    rho0 = sigma / np.sqrt(2*np.pi) / Hp
-    cell_volume = dx*dy*dz
+    Args:
+        radius (ndarray):
+        npar (int):
+        nx (int):
+        rhopswarm (float):
+        column_density (float):
+        eps_dtog (float):
+
+    Returns:
+        Mass of the forming protoplanets
+    """
+
+    mass_box = calc_cube_mass(data=data, axis=axis, column_density=column_density, H=H)
+
+    index = np.where(radius!=0)
     mp_code = eps_dtog * mass_box / npar
     mp = stats.mode(rhopswarm)[0]
-    npclump = rhopswarm[i]/mp
-    Mmars = 6.39e26
+    npclump = rhopswarm[index]/mp
     Mearth=5.972e27
     tmp = np.log10(npclump)
-    fac = mp_code                                                                                                                                                                                 
-    ttmp = tmp + np.log10(fac)
-
+    ttmp = tmp + np.log10(mp_code)
     mass = 10**ttmp
-
     return np.sort(mass/Mearth)
 
 
 #mass = getmass(fp.aps,npar,256,fp.rhopswarm)
-#fp = pc.read_pvar(datadir=datadir,varfile=‘PVAR’+str(ivar))
+#fp = pc.read_pvar(varfile='PVAR7')
 #pdim=pc.read_pdim(datadir=datadir)
 #npar = pdim.npar
 
