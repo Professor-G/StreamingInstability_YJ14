@@ -33,14 +33,20 @@ class density_cube:
         column_density : Column density of the gas (g / cm^2). Defaults to 100.
         T (float): Temperature of the entire box, as this model is isothermal.
             Defaults to 30.  
-        kappa (float): Dust opacity coefficient (cm^2 / g). Defaults to 1. 
         H (int): Scale height of the box, the value is multiplied by one AU,
             in cgs units. Defaults to 5.
 
 
-        st (float): Stoke's number
-        rho_g (float): Internal grain density, approximately
-            1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates
+        stoke (float): Stoke's number, either a float or an ndarray
+        rho_grain (float): Internal grain density, approximately
+            1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates. 
+            Can either be a float or an ndarray. Must correspond
+            with the stokes number.
+        eps_dtof (float): Dust to gas ratio, defaults to 0.03.
+        npar (int): Number of particles in the simulation, defaults
+            to one million.
+        aps (ndarray): pvar.aps
+        rhopswarm (ndarray): pvar.rhopswarm
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5,
@@ -103,11 +109,12 @@ class density_cube:
         """
 
         self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1])*self.H 
-        self.Nz = self.Ny = self.Nx = len(self.axis)
         self.dz = self.dy = self.dx = np.diff(self.axis)[0]
+        self.Nz = self.Ny = self.Nx = len(self.axis)
     
         self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
         self.area = self.Lx * self.Ly
+
         #Code units
         box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2
@@ -131,7 +138,7 @@ class density_cube:
         of a source in thermal equilibrium at a given temperature T.
 
         Args:
-            nu (ndarray): Array of frequencies.
+            nu (float): Wavelength frequency.
 
         Returns:
             Spectral radiance of the source. 
@@ -191,8 +198,7 @@ class density_cube:
             2D array containing the integrated values along the third axis.
         """
 
-        if self.tau is None:
-            self.calc_tau()
+        self.calc_tau()
     
         flux = np.zeros([self.Ny, self.Nx])
         #Estimate flux assuming optically thick
@@ -226,8 +232,7 @@ class density_cube:
             Float.
         """
 
-        if self.tau is None:
-            self.calc_tau()
+        self.calc_tau()
 
         #Source function should be per frequency (1mm wavelength ~ 230GHz)
         src_fn_230 = self.blackbody(nu=nu) 
@@ -285,11 +290,10 @@ class density_cube:
         Returns opacity according to grain size
         """
 
-        if self.grain_size is None:
-            try:
-                self.calc_grain_size()
-            except:
-                raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
+        try:
+            self.calc_grain_size()
+        except:
+            raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
 
         a, k_abs, k_sca = load_fig4_values() #Grain size, absorption opacity, scattering opacity
         k_abs_fit, k_sca_fit = interp1d(a, k_abs), interp1d(a, k_sca)
@@ -318,14 +322,6 @@ class density_cube:
         """
         Calculates the mass of the protoplanets
 
-        Args:
-            radius (ndarray):
-            npar (int):
-            nx (int):
-            rhopswarm (float):
-            column_density (float):
-            eps_dtog (float):
-
         Returns:
             Mass of the forming protoplanets
         """
@@ -352,8 +348,7 @@ class density_cube:
             Float.
         """
 
-        if self.tau is None:
-            self.calc_tau()
+        self.calc_tau()
 
         self.filling_factor = len(np.where(self.tau >= 1)[0]) / (self.Nx * self.Ny)
 
@@ -364,8 +359,7 @@ class density_cube:
         Plots the optical depth at the exit plane.
         """
 
-        if self.tau is None:
-            self.calc_tau()
+        self.calc_tau()
 
         plt.contourf(self.axis, self.axis, np.log10(self.tau), np.linspace(-2,2,256))
         plt.colorbar()
@@ -378,8 +372,8 @@ class density_cube:
         """
         Plots the outgoing flux at the exit plane.
         """
-        if self.flux is None:
-            self.calc_flux()
+
+        self.calc_flux()
 
         plt.contourf(self.axis, self.axis, self.flux, 256)
         plt.xlabel('x (H)', size=16)
