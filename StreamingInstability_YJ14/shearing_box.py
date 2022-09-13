@@ -360,7 +360,7 @@ class density_cube:
         """
 
         self.calc_tau()
-
+        
         self.filling_factor = len(np.where(self.tau >= 1)[0]) / (self.Nx * self.Ny)
 
         return 
