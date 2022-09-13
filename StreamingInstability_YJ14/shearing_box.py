@@ -44,29 +44,20 @@ class density_cube:
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5,
-        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, kappa=None, 
-        Nz=None, Ny=None, Nx=None, dz=None, dy=None, dx=None, Lx=None, Ly=None):
+        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None):
 
         self.data = data
         self.axis = axis 
         self.column_density = column_density
         self.T = T 
-        self.kappa = kappa
         self.H = H*const.au.cgs.value
-        self.Lx = Lx 
-        self.Ly = Ly
-        self.Nz = Nz
-        self.Ny = Ny 
-        self.Nx = Nx 
-        self.dz = dz 
-        self.dy = dy 
-        self.dx = dx 
         self.stoke = stoke 
         self.rho_grain = rho_grain
         self.eps_dtog = eps_dtog
         self.npar = npar
         self.aps = aps 
         self.rhopswarm = rhopswarm
+
         try: 
             len(stoke)
             if len(stoke) != len(rho_grain):
@@ -75,22 +66,29 @@ class density_cube:
             pass 
 
         if self.data is None:
-            print('No data input, automatically loading default density cube.')
-            if self.axis is None:
-                self.data, self.axis = load_cube()
-            else:
-                self.data = load_cube()[0]
+            print('No data input, loading density cube from YJ14, orbit 100...')
+            self.data, self.axis = load_cube()
 
-        self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
+        self.unit_sigma = None
         self.tau = None 
         self.flux = None
         self.mass = None
         self.mass_excess = None
         self.filling_factor = None 
-        self.Nw = None
         self.area = None 
         self.grain_size = None 
         self.proto_mass = None 
+        self.kappa = None 
+
+        self.Lz = None 
+        self.Ly = None  
+        self.Lx = None
+        self.Nz = None
+        self.Ny = None 
+        self.Nx = None 
+        self.dz = None 
+        self.dy = None 
+        self.dx = None 
 
         self.configure()
 
@@ -104,27 +102,10 @@ class density_cube:
             nu (float): Frequency at which to calculate the observed flux and thus mass excess.
         """
 
-        if self.Nz is None:
-            self.Nz = len(self.axis)
-        if self.Ny is None:
-            self.Ny = len(self.axis)
-        if self.Nx is None:
-            self.Nx = len(self.axis)
-
-        self.Nw = 1./(self.Nx * self.Ny)
-
-        if self.dz is None:
-            self.dz = np.diff(self.axis)[0]
-        if self.dy is None:
-            self.dy = np.diff(self.axis)[0]
-        if self.dx is None:
-            self.dx = np.diff(self.axis)[0]
-
-        if self.Lx is None:
-            self.Lx = np.abs(self.axis[0] - self.axis[-1])*self.H 
-        if self.Ly is None: 
-            self.Ly = np.abs(self.axis[0] - self.axis[-1])*self.H 
-
+        self.Lz = self.Ly = self.Lz = np.abs(self.axis[0] - self.axis[-1])*self.H 
+        self.Nz = self.Ny = self.Nx = len(self.axis)
+        self.dz = self.dy = self.dx = np.diff(self.axis)[0]
+    
         self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
         self.area = self.Lx * self.Ly
         #Code units
@@ -132,12 +113,11 @@ class density_cube:
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
 
-        if self.kappa is None:
-            try:
-                self.calc_grain_size()
-                self.extract_opacity()
-            except:
-                raise ValueError('Cannot calculate kappa -- to calculate grain size input stoke and rho_grain parameters.')
+        try:
+            self.calc_grain_size()
+            self.extract_opacity()
+        except:
+            raise ValueError('Cannot calculate kappa -- to calculate grain size input stoke and rho_grain parameters.')
 
         self.calc_tau()
         self.calc_mass_excess(nu=nu)
@@ -303,29 +283,31 @@ class density_cube:
     def extract_opacity(self):
         """
         Returns opacity according to grain size
-        and wavelength
         """
+
         if self.grain_size is None:
             try:
                 self.calc_grain_size()
             except:
                 raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
 
-        a, k_abs, k_sca = load_fig4_values()
-        k_abs_fit = interp1d(a, k_abs)
-        k_sca_fit = interp1d(a, k_sca)
+        a, k_abs, k_sca = load_fig4_values() #Grain size, absorption opacity, scattering opacity
+        k_abs_fit, k_sca_fit = interp1d(a, k_abs), interp1d(a, k_sca)
 
         if isinstance(self.grain_size, np.ndarray) is False:
             if self.grain_size > a.max():
-                raise ValueError('Maximum grain size supported is '+str(a.max()))
+                raise ValueError('Maximum grain size supported is '+str(a.max())+' cm')
             if self.grain_size < a.min():
-                raise ValueError('Minimum grain size supported is '+str(a.min()))
+                raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
+
             self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
+
         else:
             if self.grain_size.max() > a.max():
-                raise ValueError('Maximum grain size supported is '+str(a.max()))
+                raise ValueError('Maximum grain size supported is '+str(a.max())+' cm')
             if self.grain_size.min() < a.min():
-                raise ValueError('Minimum grain size supported is '+str(a.min()))
+                raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
+
             self.kappa = np.zeros(len(self.grain_size))
             for grain in self.grain_size:
                 self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
@@ -358,7 +340,7 @@ class density_cube:
         ttmp = tmp + np.log10(mp_code)
         mass = 10**ttmp
 
-        self.proto_mass = np.sort(mass/5.972e27) #In terms of M_Earth
+        self.proto_mass = np.sort(mass) 
 
         return
 
@@ -373,7 +355,7 @@ class density_cube:
         if self.tau is None:
             self.calc_tau()
 
-        self.filling_factor = len(np.where(self.tau >= 1)[0]) * self.Nw
+        self.filling_factor = len(np.where(self.tau >= 1)[0]) * / (self.Nx * self.Ny)
 
         return 
         
@@ -416,6 +398,7 @@ def load_cube():
         The first output is the 3D array of the cube, the second output
         is the axis array. This array can be used as either axis (z,y,x).
     """
+
     resource_package = __name__
     resource_path = '/'.join(('data', 'density_cube_1.npy'))
     file = pkg_resources.resource_filename(resource_package, resource_path)
@@ -434,8 +417,9 @@ def load_cube():
 
 def load_fig4_values():
     """
-    Loads the opacity values taken from DSHARP
+    Loads the opacity values taken from DSHARP, Figure 4
     """
+
     resource_package = __name__
     resource_path = '/'.join(('data', 'dsharp_fig4_values'))
     file = pkg_resources.resource_filename(resource_package, resource_path)
