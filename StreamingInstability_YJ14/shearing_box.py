@@ -155,7 +155,9 @@ class density_cube:
         Returns:
             2D array containing the optical depth values.
         """
-        
+
+        self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
+  
         tau = np.zeros([self.Ny, self.Nx]) #python reverses order
                
         for i in range(self.Nx):
@@ -180,7 +182,9 @@ class density_cube:
         Returns:
             1D array containing the cumulative optical depth along the column.
         """
-        
+
+        self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
+
         t = np.zeros(self.Nz)
         surface_density = 0
 
@@ -231,6 +235,13 @@ class density_cube:
         Returns:
             Float.
         """
+        
+        self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
+
+        #Code units
+        box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
+        unit_mass = self.unit_sigma * self.H**2
+        self.mass = box_mass_codeunits * unit_mass 
 
         self.calc_tau()
 
