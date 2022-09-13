@@ -102,7 +102,7 @@ class density_cube:
             nu (float): Frequency at which to calculate the observed flux and thus mass excess.
         """
 
-        self.Lz = self.Ly = self.Lz = np.abs(self.axis[0] - self.axis[-1])*self.H 
+        self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1])*self.H 
         self.Nz = self.Ny = self.Nx = len(self.axis)
         self.dz = self.dy = self.dx = np.diff(self.axis)[0]
     
