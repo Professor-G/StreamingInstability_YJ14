@@ -49,7 +49,7 @@ class density_cube:
         rhopswarm (ndarray): pvar.rhopswarm
     """
     
-    def __init__(self, data=None, axis=None, column_density=100, T=30, H=5,
+    def __init__(self, data=None, axis=None, column_density=100, T=30, H=5, kappa=None,
         stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None):
 
         self.data = data
@@ -57,6 +57,7 @@ class density_cube:
         self.column_density = column_density
         self.T = T 
         self.H = H*const.au.cgs.value
+        self.kappa = kappa 
         self.stoke = stoke 
         self.rho_grain = rho_grain
         self.eps_dtog = eps_dtog
@@ -84,7 +85,6 @@ class density_cube:
         self.area = None 
         self.grain_size = None 
         self.proto_mass = None 
-        self.kappa = None 
 
         self.Lz = None 
         self.Ly = None  
@@ -120,11 +120,12 @@ class density_cube:
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
 
-        try:
-            self.calc_grain_size()
-            self.extract_opacity()
-        except:
-            raise ValueError('Cannot calculate kappa -- to calculate grain size input stoke and rho_grain parameters.')
+        if self.kappa is None:
+            try:
+                self.calc_grain_size()
+                self.extract_opacity()
+            except:
+                raise ValueError('Cannot calculate kappa -- to calculate grain size input stoke and rho_grain parameters.')
 
         self.calc_tau()
         self.calc_mass_excess(nu=nu)

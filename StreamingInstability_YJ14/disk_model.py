@@ -63,11 +63,28 @@ def calc_sigma_d(r, r_c=30, M_disk=0.2, Z=0.01):
 
     return sigma_d 
 
-"""
-r = np.arange(10,101,1)
-compact, large = disk_model.calc_sigma_g(r, M_disk=0.01), disk_model.calc_sigma_g(r,M_disk=0.01,r_c=300)
 
-import matplotlib.pyplot as plt
+def calc_stokes(grain_size, grain_rho, sigma_g):
+    """
+    Calculates the Stokes number according to the gas
+    column density and the grain properties
+    """
+
+    return np.pi * grain_size * grain_rho / 2. / sigma_g
+
+
+"""
+#Disk model plot
+
+import numpy as  np 
+import matplotlib.pyplot as plt  
+import astropy.constants as const
+
+M_disk = 0.01 
+r = np.arange(10,101,1)
+compact, large = disk_model.calc_sigma_g(r, M_disk=M_disk), disk_model.calc_sigma_g(r,M_disk=M_disk,r_c=300)
+
+  
 plt.plot(r, compact, label='Compact Disk')
 plt.plot(r, large, label='Large Disk')
 plt.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
@@ -80,6 +97,13 @@ plt.title('Gas Column Density Profiles',size=18)
 #plt.yscale('log')
 plt.show()
 
+
+#Stokes number at different sigma_g and grain size
+
+radii = np.array([10, 30, 100])
+grain_size = np.array([1, 0.3, 0.1, 0.03])
+sigma_g = disk_model.calc_sigma_g(radii, M_disk=M_disk, r_c=300)
+stoke = calc_stokes(grain_size=grain_size, grain_rho=1, sigma_g=sigma_g)
 """
 
 
