@@ -50,7 +50,7 @@ class density_cube:
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5, kappa=None,
-        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None):
+        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None):
 
         self.data = data
         self.axis = axis 
@@ -64,6 +64,7 @@ class density_cube:
         self.npar = npar
         self.aps = aps 
         self.rhopswarm = rhopswarm
+        self.init_var = init_var
 
         try: 
             len(stoke)
@@ -240,7 +241,10 @@ class density_cube:
         self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
 
         #Code units
-        box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
+        if self.init_var is None:
+            box_mass_codeunits = np.sum(self.data) * self.dx * self.dy * self.dz 
+        else:
+            box_mass_codeunits = np.sum(self.init_var) * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
 
