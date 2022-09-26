@@ -26,7 +26,7 @@ Pages
    :maxdepth: 1
 
    source/Streaming Instability
-   source/Analysis
+   source/Mass Excess Analysis
 
 
 Documentation
