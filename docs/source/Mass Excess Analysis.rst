@@ -107,7 +107,7 @@ A heatmap of the mass excess metric, at the final period (P = 100) is shown in F
 We extracted the mm-wave opacity using `DSHARP <https://github.com/birnstiel/dsharp_opac>`_, presented by `Birnstiel et al 2018 <https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf>`_. Figure 4 from their study is displayed below, which presents the particle size average opacities:
 
 
-.. figure:: _static/ff_full.png
+.. figure:: _static/Figure_4.png
     :align: center
     :class: with-shadow with-border
     :width: 1200px
@@ -124,7 +124,7 @@ Using q=2.5, we extrapolated the mm-wave absorption and scattering opacity funct
 .. math::
     a_g = \frac{2st}{\pi} \frac{\Sigma_g}{\rho_g}
 
-where :math:`\a_g` and :math:`\rho_g` are the grain size and internal grain density. From the computed :math:`\a_g` an opacity from Birstiel et al (2018) Figure 4 was calculated, although we noted that when using these opacities, the mass excess saturated. This was in part due to the inverse relation between opacity and :math:`\Sigma_g`, since 
+where :math:`a_g` and :math:`\rho_g` are the grain size and internal grain density. From the computed :math:`a_g` an opacity from Birstiel et al (2018) Figure 4 was calculated, although we noted that when using these opacities, the mass excess saturated. This was in part due to the inverse relation between opacity and :math:`\Sigma_g`, since 
 
 .. math::
     \tau = \kappa \Sigma_d.
