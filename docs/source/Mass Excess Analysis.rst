@@ -146,7 +146,7 @@ Since the mass excess is the ratio of observed mass to actual mass inside the bo
     \ME = \Sigma_d \frac{\B_\nu \kappa}{I} = \Sigma_d \frac{\B_\nu}{I} \frac{1}{\Sigma_d}
 
 
-For this reason we chose an opacity of :math:`\kappa_\nu`=1 for our analysis, as this is a common mm-wave opacity, which yielded the following mass excess as a function of :math:`\Sigma_g` and orbit:
+For this reason we chose an opacity of :math:`\kappa` = 1 for our analysis, as this is a common mm-wave opacity, which yielded the following mass excess as a function of :math:`\Sigma_g` and orbit:
 
 .. figure:: _static/Mass_Excess_YJ14_Missing.png
     :align: center
