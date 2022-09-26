@@ -120,8 +120,7 @@ def calc_mass_excess(data, axis, kappa, column_density, T, H, nu=230e9, mask_tau
     return mass_excess
 
 
-def getmass(radius, axis, npar, rhopswarm, column_density H,
-    eps_dtog):
+def getmass(radius, axis, npar, rhopswarm, column_density, H, eps_dtog):
     """
     Calculates the mass of the protoplanets
 
