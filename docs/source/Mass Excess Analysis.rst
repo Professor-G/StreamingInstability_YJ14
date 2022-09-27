@@ -112,7 +112,7 @@ We extracted the mm-wave opacity using `DSHARP <https://github.com/birnstiel/dsh
     :class: with-shadow with-border
     :width: 1200px
 
-    Figure 5: Figure 4 from Birstiel et al (2018). We extrapolated the mm-wave absorption and scattering opacities (top panel), in order to calculate the opacity as a function of our simulation grain size.
+    Figure 5: Figure 4 from Birnstiel et al (2018). We extrapolated the mm-wave absorption and scattering opacities (top panel), in order to calculate the opacity as a function of our simulation grain size.
 
 
 Using q=2.5, we extrapolated the mm-wave absorption and scattering opacity functions. The streaming instability simulation employed a Stoke's number of 0.3, and given the following relation we can solve for the grain size at a specific gas column density,
@@ -124,7 +124,7 @@ Using q=2.5, we extrapolated the mm-wave absorption and scattering opacity funct
 .. math::
     a_\circ = \frac{2st}{\pi} \frac{\Sigma_g}{\rho_\circ}
 
-where :math:`a_\circ` and :math:`\rho_\circ` are the grain size and internal grain density. From the computed :math:`a_g` an opacity from Birstiel et al (2018) Figure 4 was calculated, although we noted that when using these opacities, the mass excess saturated. This was in part due to the inverse relation between opacity and :math:`\Sigma_g`, since 
+where :math:`a_\circ` and :math:`\rho_\circ` are the grain size and internal grain density. From the computed :math:`a_\circ` an opacity from Birnstiel et al (2018) Figure 4 was calculated, although we noted that when using these opacities, the mass excess saturated. This was in part due to the inverse relation between opacity and :math:`\Sigma_g`, since 
 
 .. math::
     \tau = \kappa_\nu \Sigma_d.
