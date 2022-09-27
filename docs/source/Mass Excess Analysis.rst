@@ -132,15 +132,16 @@ where :math:`a_g` and :math:`\rho_g` are the grain size and internal grain densi
 When calculating the mass excess, the observed mass is calculated assuming the dust is optically thin, therefore the intensity scales as
 
 .. math::
-    \I = \B_\nu \tau = \B_\nu \kappa \Sigma_d 
-
-    \Sigma_d = \frac{I}{\B_\nu \kappa}
+    I = B_\nu \tau = B_\nu \kappa \Sigma_d 
+.. math::
+    \Sigma_d = \frac{I}{B_\nu \kappa}
 
 Since the mass excess is the ratio of observed mass to actual mass inside the box, :math:`\Sigma_d` cancels as per the inverse relation with :math:`\kappa`:
 
 .. math::
-    ME = \Sigma_d \frac{\B_\nu \kappa}{I} 
-    ME= \Sigma_d \frac{\B_\nu}{I} \frac{1}{\Sigma_d}
+    ME = \Sigma_d \frac{B_\nu \kappa}{I} 
+.. math::
+    ME= \Sigma_d \frac{B_\nu}{I} \frac{1}{\Sigma_d}
 
 For this reason we chose an opacity of :math:`\kappa` = 1 for our analysis, as this is a common mm-wave opacity, which yielded the following mass excess as a function of :math:`\Sigma_g` and orbit:
 
