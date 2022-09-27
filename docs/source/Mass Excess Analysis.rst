@@ -119,10 +119,10 @@ Using q=2.5, we extrapolated the mm-wave absorption and scattering opacity funct
 
 
 .. math::
-    st = \frac{\pi}{2} \frac{a_\cdot\rho_\cdot}{\Sigma_g},
+    st = \frac{\pi}{2} \frac{a_\big{\cdot}\rho_\cdot}{\Sigma_g},
 
 .. math::
-    a_\cdot = \frac{2st}{\pi} \frac{\Sigma_g}{\rho_\circ}
+    a_\big{\cdot} = \frac{2st}{\pi} \frac{\Sigma_g}{\rho_\circ}
 
 where :math:`a_g` and :math:`\rho_g` are the grain size and internal grain density. From the computed :math:`a_g` an opacity from Birstiel et al (2018) Figure 4 was calculated, although we noted that when using these opacities, the mass excess saturated. This was in part due to the inverse relation between opacity and :math:`\Sigma_g`, since 
 
