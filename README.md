@@ -13,9 +13,9 @@ This snapshot is available in the data folder and can be loaded as such:
 
 ```python
 
-from StreamingInstability_YJ14 import analysis
+from StreamingInstability_YJ14 import shearing_box
 
-density_cube = analysis.load_cube()
+cube = shearing_box.density_cube()
 ```
 
 
