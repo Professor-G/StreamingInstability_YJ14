@@ -33,20 +33,23 @@ class density_cube:
         column_density : Column density of the gas (g / cm^2). Defaults to 100.
         T (float): Temperature of the entire box, as this model is isothermal.
             Defaults to 30.  
-        H (int): Scale height of the box, the value is multiplied by one AU,
+        H (float): Scale height of the box, the value is multiplied by one AU,
             in cgs units. Defaults to 5.
-
-
+        kappa (float):  Dust opacity coefficient, if None then the mm-wave
+            dust opacity will be calculated according to column density and grain size,
+            using the DSHARP code. (see:https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf) 
+            Defaults to None.
         stoke (float): Stoke's number, either a float or an ndarray
         rho_grain (float): Internal grain density, approximately
             1 g/cm^3 for ices, and 3.5 g/cm^3 for silicates. 
             Can either be a float or an ndarray. Must correspond
             with the stokes number.
-        eps_dtof (float): Dust to gas ratio, defaults to 0.03.
+        eps_dtog (float): Dust to gas ratio, defaults to 0.03. Only used
+            to calculate the mass of protoplanets.
         npar (int): Number of particles in the simulation, defaults
-            to one million.
-        aps (ndarray): pvar.aps
-        rhopswarm (ndarray): pvar.rhopswarm
+            to one million. Only used to calculate the mass of protoplanets.
+        aps (ndarray): pvar.aps, only used to calculate the mass of protoplanets.
+        rhopswarm (ndarray): pvar.rhopswarm, only used to calculate the mass of protoplanets.
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5, kappa=None,
