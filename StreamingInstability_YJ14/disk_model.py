@@ -78,13 +78,6 @@ def calc_stokes(sigma_g, grain_size=0.1, grain_rho=1):
 
     return np.pi * grain_size * grain_rho / 2. / sigma_g
 
-def aspect_ratio(H, r):
-    """
-    Aspect ratio, h 
-    """
-    
-    return H/r
-
 def omega(M, r):
     """
     Keplerian frequency.
@@ -114,7 +107,7 @@ def toomreq(cs, M, r, sigma):
 
 def T(r, T0=150, q=3./7):
     """
-    Temperature model from Ida et al. 2016
+    Temperature model from Ida et al. 2016: https://arxiv.org/pdf/1604.01291.pdf
 
     Args:
         r (float): Distance from the central star, in cgs units.
@@ -125,6 +118,37 @@ def T(r, T0=150, q=3./7):
     """
 
     return T0*(r / const.au.cgs.value)**(-q)
+
+def aspect_ratio(r, M, mmol=2.3):
+    """
+    Aspect ratio, as a function of T 
+    Equation 5: https://www.aanda.org/articles/aa/pdf/2015/03/aa24964-14.pdf
+
+     Args:
+        r (float): Distance from the central star, in cgs units.
+        M (float): Mass of the central star, in cgs units.
+        mmol (float): Mean molecular weight, defaults to 2.3, corresponding
+            to 5 parts molecular H and 1 part He
+
+    Returns:
+        Aspect ratio.
+    """
+
+    return np.sqrt(T(r) * r * const.R.cgs.value / const.G.cgs.value / M / mmol )
+
+def h(H, r):
+    """
+    Aspect ratio.
+
+    Args:
+        H (float): Scale height, in cgs units.
+        r (float): Distance from the central star, in cgs units.
+
+    Returns:
+        Aspect ratio.
+    """
+    
+    return H/r
 
 def sound_speed(r, gamma=1.4, mmol=2.3):
     """
@@ -177,8 +201,11 @@ def parameters(r, M, M_disk):
     H = cs/omega(M=M, r=r)
     print("Scale Height: {}".format(H))
 
-    h = aspect_ratio(H, r=r)
-    print("Aspect ratio: {}".format(h))
+    h1 = h(H, r=r)
+    print("Aspect ratio 1: {}".format(h1))
+
+    h2 = aspect_ratio(r=r, M=M)
+    print("Aspect ratio 2: {}".format(h2))
 
     Q = toomreq(cs, M=M, r=r, sigma=sigma)
     print("Toomre Q: {}".format(Q))
@@ -186,18 +213,18 @@ def parameters(r, M, M_disk):
     G = G_tilde(Q)
     print("G Tilde: {}".format(G))
 
-    beta = -h * -2.28
+    beta = -h1 * -2.28
     print("Beta: {}".format(beta))
 
     st = calc_stokes(sigma_g=sigma, grain_size=0.1)
     print("Stokes number: {}".format(st))
 
-    return {'sigma_g': sigma, 'cs': cs, 'H': H, 'h':h, 'Q':Q, 'G':G, 'beta':beta, 'stoke':st}
+    return {'sigma_g': sigma, 'cs': cs, 'H': H, 'h':h1, 'Q':Q, 'G_tilde':G, 'beta':beta, 'stoke':st}
 
 
 ######################################
-#r, M, M_disk = 30*const.au.cgs.value, const.M_sun.cgs.value, 0.2
-#print(parameters(r,M,M_disk))
+r, M, M_disk = 30*const.au.cgs.value, const.M_sun.cgs.value, 0.2
+print(parameters(r,M,M_disk))
 
 """
 #Disk model plot
@@ -206,21 +233,47 @@ import numpy as  np
 import matplotlib.pyplot as plt  
 import astropy.constants as const
 
-M_disk = 0.01 
-r = np.arange(10,101,1)
+M_disk = 0.2
+r = np.arange(30,101,1)
 compact, large = disk_model.calc_sigma_g(r, M_disk=M_disk), disk_model.calc_sigma_g(r,M_disk=M_disk,r_c=300)
-
+temp = T(r*const.au.cgs.value)
   
 plt.plot(r, compact, label='Compact Disk')
+
+
+fig, axes = plt.subplots(nrows=2)
+ax1, ax2 = axes
+ax1.plot(r, large, c='k')
+ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=14)
+ax1.set_ylim(0,31)
+ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+ax1.tick_params(labelsize=14, axis="both", which="both")
+ax1.set_title('Disk Model',size=16)
+ax1.set_xticklabels([])
+
+
+ax2.plot(r, temp, c='k')
+ax2.set_xlabel('Radius (AU)', size=14)
+ax2.set_ylabel('T [K]', size=14)
+ax2.tick_params(labelsize=14, axis="both", which="both")
+ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+ax2.set_ylim(20, 36)
+
+plt.savefig('Disk_Model.png', dpi=300, bbox_inches='tight')
+
+
+
 plt.plot(r, large, label='Large Disk')
 plt.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
 plt.legend(prop={'size':16})
 plt.tick_params(labelsize=14, axis="both", which="both")
-plt.xlabel('Radius (AU)', size=16)
-plt.ylabel(r'$\Sigma_g \ (g/cm^3)$',size=16)
-plt.title('Gas Column Density Profiles',size=18)
+plt.xlabel('Radius (AU)', size=18)
+plt.ylabel(r'$\Sigma_g \ (g \ cm^{-2})$', fontsize=18)
+plt.title('Disk Model',size=20)
 #plt.xscale('log')
 #plt.yscale('log')
+plt.savefig('Disk_Models', dpi=300, bbox_inches='tight')
+
 plt.show()
 
 
