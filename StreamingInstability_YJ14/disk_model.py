@@ -198,6 +198,9 @@ def parameters(r, M, M_disk):
     cs = sound_speed(r)
     print("cs: {}".format(cs))
 
+    temp = T(r)
+    print("Temperature : {}".format(temp))
+    
     H = cs/omega(M=M, r=r)
     print("Scale Height: {}".format(H))
 
@@ -219,7 +222,7 @@ def parameters(r, M, M_disk):
     st = calc_stokes(sigma_g=sigma, grain_size=0.1)
     print("Stokes number: {}".format(st))
 
-    return {'sigma_g': sigma, 'cs': cs, 'H': H, 'h':h1, 'Q':Q, 'G_tilde':G, 'beta':beta, 'stoke':st}
+    return {'sigma_g': sigma, 'cs': cs, 'T':temp, 'H': H, 'h':h1, 'Q':Q, 'G_tilde':G, 'beta':beta, 'stoke':st}
 
 
 ######################################
