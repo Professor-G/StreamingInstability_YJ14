@@ -10,224 +10,268 @@ import matplotlib.pyplot as plt
 import astropy.constants as const  
 
 
-def calc_sigma_g(r, r_c=300, M_disk=0.2):
+class Model:
     """
-    Calculates the gas surface density, as per the protoplanetary 
-    disk model presented in Section 2 of Drazkowska et al (2022)
+    Creates the disk model.
+
+    The gas surface density is defined in Section 2 of Drazkowska et al (2022)
     See: https://arxiv.org/pdf/2101.01728.pdf
+
+    The temperature model from Ida et al. , see:2016: https://arxiv.org/pdf/1604.01291.pdf
+    Note that the temperature profile is for outer regions of the disk only 
+    where viscous heating is negligible. 
+
+    Note:
+        All inputs must be in cgs units!
 
     Args:
         r (float, ndarray): The radii of the disk at which to calculate
             the gas surface density. Must be in cgs units.
-        r_c (float): Characteristic radius of the disk, in AU. This radius
+        r_c (float): Characteristic radius of the disk, in cgs units. This radius
             for compact disks is about 30 AU, and 300 AU for large disks.
-            Defaults to 30 AU.  
-        M_disk (float): Mass of the disk, in terms of solar mass. 
-            Defaults to 0.2.
-        
-    Returns:
-        Gas surface density at the specified r.
-    """
-
-    M_disk = M_disk*const.M_sun.cgs.value
-    r_c = r_c*const.au.cgs.value
-
-    sigma_g = ((M_disk/(2.*np.pi*r_c**2))*(r/r_c)**-1)*np.e**(-(r/r_c))
-
-    return sigma_g
-
-def calc_sigma_d(r, r_c=30, M_disk=0.2, Z=0.01):
-    """
-    Calculates the dust surface density, as per the protoplanetary 
-    disk model presented in Section 2 of Drazkowska et al (2022)
-    See: https://arxiv.org/pdf/2101.01728.pdf
-
-    Args:
-        r (float, ndarray): The radii of the disk at which to calculate
-            the gas surface density. Must be in AU. 
-        r_c (float): Characteristic radius of the disk, in AU. This radius
-            for compact disks is about 30 AU, and 300 AU for large disks.
-            Defaults to 30.
-        M_disk (float): Mass of the disk, in terms of solar mass. 
-            Defaults to 0.2.  
-        Z (float):  The global solids-to-gas ratio. Defaults to 0.01.
-
-    Returns:
-        Gas surface density.
-    """
-
-    sigma_g = calc_sigma_g(r, r_c, M_disk)
-    sigma_d = sigma_g * Z
-
-    return sigma_d 
-
-def calc_stokes(sigma_g, grain_size=0.1, grain_rho=1):
-    """
-    Calculates the Stokes number according to the gas
-    column density and the grain properties
+        M_star (float): Mass of the central star, in cgs units.
+        M_disk (float): Mass of the disk, in cgs units. 
+        grain_size (float): Grain size, in cgs units. Defaults to 1 mm.
+        grain_rho (float): Internal grain density in cgs units. Defaults to 1 g/cm2.
+        T0 (float): Temperature at r=0, defaults to 150 K, which is an accepted standard.
+        q (float): Power law index, defaults to 3/7, which is an accepted standard.
+        gamma (float): Adiabatic index, defaults to 1.0 for an isothermal disk.
+        mmol (float): Mean molecular weight, defaults to 2.3, corresponding
+            to 5 parts molecular H and 1 part He1.
+        Z (float): The global solids-to-gas ratio. Defaults to 0.01.
     
-    Args:
-        grain_size (float): Grain size, in cgs units. Defaults to 
-            1 mm.
-        grain_rho (float): Internal grain density in cgs units. Defaults to 1 g/cm2
-        sigma_g (float): Gas column density, in cgs units.
+    Attributes:
+        get_params: Calculates all disk parameters
+
+    """
+    def __init__(self, r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1,
+        T0=150, q=3./7, gamma=1, mmol=2.3, Z=0.01):
+
+        self.r = r 
+        self.r_c = r_c
+        self.M_star = M_star
+        self.M_disk = M_disk
+        self.grain_size = grain_size
+        self.grain_rho = grain_rho
+        self.T0 = T0
+        self.q = q 
+        self.gamma = gamma 
+        self.mmol = mmol 
+        self.Z = Z 
+
+        self.sigma_g = None
+        self.sigma_d = None  
+        self.cs = None 
+        self.T = None 
+        self.H = None 
+        self.h = None 
+        self.Q = None 
+        self.G = None 
+        self.beta = None 
+        self.st = None 
+
+        self.a = None 
+
+        self.get_params(print_params=False)
+
+
+    def get_params(self, print_params=True):
+        """
+        Calculates the disk parameters according to the fiducial models
+        """
+
+        self.calc_omega()
+        self.calc_sigma_g() 
+        self.calc_sigma_d()
+        self.calc_T()
+        self.calc_cs()
+        self.calc_H()
+        self.calc_h()
+        self.calc_Q()
+        self.calc_G()
+        self.calc_beta()
+        self.calc_stokes()
+
+        if print_params:
+            print('Sigma_g: {} g/cm2'.format(self.sigma_g))
+            print('Sigma_d: {} g/cm2'.format(self.sigma_d))
+            print('cs: {} cm/s'.format(self.cs))
+            print('T : {} K'.format(self.T))
+            print('H: {} AU'.format(self.H/const.au.cgs.value))
+            print('h {}'.format(self.h))
+            print('Q: {}'.format(self.Q))
+            print('G: {}'.format(self.G))
+            print('beta: {}'.format(self.beta))
+            print('Stokes: {}'.format(self.st))
+
+        return 
+
+    def calc_sigma_g(self):
+        """
+        Calculates the gas surface density, as per the protoplanetary 
+        disk model presented in Section 2 of Drazkowska et al (2022)
+        See: https://arxiv.org/pdf/2101.01728.pdf
+
+        Returns:
+            Gas surface density at the specified r.
+        """
+
+        #M_disk = self.M_disk*const.M_sun.cgs.value
+        #r_c = self.r_c*const.au.cgs.value
+
+        self.sigma_g = ((self.M_disk/(2.*np.pi*self.r_c**2))*(self.r/self.r_c)**-1)*np.e**(-(self.r/self.r_c))
+
+        return 
+
+    def calc_sigma_d(self):
+        """
+        Calculates the dust surface density, as per the protoplanetary 
+        disk model presented in Section 2 of Drazkowska et al (2022)
+        See: https://arxiv.org/pdf/2101.01728.pdf
+
+        Returns:
+            Gas surface density.
+        """
+
+        self.sigma_d = self.sigma_g * self.Z
+
+        return  
+
+    def calc_stokes(self):
+        """
+        Calculates the Stokes number according to the gas
+        column density and the grain properties
+
+        Returns:
+            Stoke's number.
+        """
+
+        self.st = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
+
+        return
+
+    def calc_grain_sizes(self, stoke):
+        """
+        Calculates the grain sizes, to use if stoke's number is constant
+
+        Returns:
+            Grain sizes, a.
+        """
+
+        self.a = 2 * stoke * self.sigma_g / np.pi / self.grain_rho
+
+    def calc_omega(self):
+        """
+        Keplerian angular velocity.
+
+        """
+
+        self.omega = np.sqrt(const.G.cgs.value*self.M_star/self.r**3)
+
+        return
+
+    def calc_Q(self):
+        """
+        Toomre Q parameter (dimensionless)
+
+        Returns:
+            ToomreQ
+        """
+
+        self.Q = self.cs * self.omega / np.pi / const.G.cgs.value / self.sigma_g
+
+        return
+
+    def calc_T(self):
+        """
+        Temperature model from Ida et al. 2016: https://arxiv.org/pdf/1604.01291.pdf
+
+        Returns:
+            Temperature as a function of distance, in cgs units.
+
+        """
+
+        self.T = self.T0*(self.r / const.au.cgs.value)**(-self.q)
+
+    def calc_h(self):
+        """
+        Calculates the aspect ratio, h
+
+        Returns:
+            Aspect ratio.
+        """
         
-    Returns:
-        Stoke's number.
-    """
+        self.h = self.H / self.r
 
-    return np.pi * grain_size * grain_rho / 2. / sigma_g
+        return 
 
-def omega(M, r):
-    """
-    Keplerian frequency.
+    def calc_cs(self):
+        """
+        Calculates the sound speed
 
-    Args:
-        M (float): Mass of the central star, in cgs units.
-        r (float): Distance from the central star, in cgs units.
-    """
+        Returns
+            cs
+        """
 
-    return np.sqrt(const.G.cgs.value*M/r**3)
+        molecule_mass = self.mmol * const.m_p.cgs.value #Mass of hydrogen molecule
 
-def toomreq(cs, M, r, sigma):
-    """
-    Toomre Q parameter (dimensionless)
+        self.cs = np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
 
-    Args:
-        cs (float): Sound speed, in cgs units.
-        M (float): Mass of the central star, in cgs units.
-        r (float): Distance from the central star, in cgs units.
-        sigma (float): Gas column density, in cgs units.
-        
-    Returns:
-        ToomreQ
-    """
+        return 
 
-    return cs*omega(M,r) / np.pi / const.G.cgs.value / sigma
+    def calc_H(self):
+        """
+        Calculates scale height
+        """
 
-def T(r, T0=150, q=3./7):
-    """
-    Temperature model from Ida et al. 2016: https://arxiv.org/pdf/1604.01291.pdf
+        self.H = self.cs / self.omega
 
-    Args:
-        r (float): Distance from the central star, in cgs units.
-        T0 (float): Temperature at r0, defaults to 150 K, which is
-            the accepted standard.
-        q (float): Power law index, defaults to 3/7, which is the 
-            accepted standard.
-    """
+        return
 
-    return T0*(r / const.au.cgs.value)**(-q)
+    def calc_G(self):
+        """
+        G tilde self-gravity parameter.
 
+        Returns:
+            Toomre Q parameter
+        """
+
+        self.G = np.sqrt(8/np.pi) / self.Q
+
+        return 
+
+    def calc_beta(self):
+        """
+        Calculates the beta parameter
+        beta = -h * dlnp/dlnr
+        dlnp/dlnr = dlnSigma/dlnr - 0.5*dlnT/dlnr + dlnOmega/dlnr = -1 -0.5*-3/7 - 3/2 = -2.2857
+
+        Returns:
+            beta
+        """
+
+        self.beta = -self.h * -2.2857
+
+        return 
+
+
+"""
 def aspect_ratio(r, M, mmol=2.3):
-    """
     Aspect ratio, as a function of T 
     Equation 5: https://www.aanda.org/articles/aa/pdf/2015/03/aa24964-14.pdf
-
-     Args:
-        r (float): Distance from the central star, in cgs units.
-        M (float): Mass of the central star, in cgs units.
-        mmol (float): Mean molecular weight, defaults to 2.3, corresponding
-            to 5 parts molecular H and 1 part He
-
-    Returns:
-        Aspect ratio.
-    """
-
     return np.sqrt(T(r) * r * const.R.cgs.value / const.G.cgs.value / M / mmol )
 
-def h(H, r):
-    """
-    Aspect ratio.
-
-    Args:
-        H (float): Scale height, in cgs units.
-        r (float): Distance from the central star, in cgs units.
-
-    Returns:
-        Aspect ratio.
-    """
-    
-    return H/r
-
 def sound_speed(r, gamma=1.4, mmol=2.3):
-    """
-    Args:
-        r (float): Distance from the central star, in parsecs
-        gamma (float): Adiabatic index, defaults to 1.4.
-        mmol (float): Mean molecular weight, defaults to 2.3, corresponding
-            to 5 parts molecular H and 1 part He
-    """
-    
     Rgasmu = const.R.cgs.value / mmol
     cp = gamma*Rgasmu / (gamma-1)
-
     return np.sqrt(T(r)*cp*(gamma-1))
-
-def G_tilde(Q):
-    """
-    G tilde self-gravity parameter.
-
-    Args:
-        Q (float): Toomre Q parameter
-
-    """
-
-    return np.sqrt(8/np.pi) / Q
-
-def parameters(r, M, M_disk):
-    """
-    Calculates the following parameters
-    according to the fiducial models
-
-    Args:
-        r (float): Distance from the central star, in cgs units.
-        M (float): Mass of the central star, in cgs units.
-        M_disk (float): Mass of the disk, in terms of solar mass. 
-            Defaults to 0.2.
-
-    Returns:    
-        Dictionary containing the following model attributes: 
-        sigma_g, cs, H, h, Q, G, beta, stoke
-
-    """
-
-    sigma = calc_sigma_g(r=r, M_disk=M_disk) 
-    print("sigma_g: {}".format(sigma))
-
-    cs = sound_speed(r)
-    print("cs: {}".format(cs))
-
-    temp = T(r)
-    print("Temperature : {}".format(temp))
-    
-    H = cs/omega(M=M, r=r)
-    print("Scale Height: {}".format(H))
-
-    h1 = h(H, r=r)
-    print("Aspect ratio 1: {}".format(h1))
-
-    h2 = aspect_ratio(r=r, M=M)
-    print("Aspect ratio 2: {}".format(h2))
-
-    Q = toomreq(cs, M=M, r=r, sigma=sigma)
-    print("Toomre Q: {}".format(Q))
-
-    G = G_tilde(Q)
-    print("G Tilde: {}".format(G))
-
-    beta = -h1 * -2.28
-    print("Beta: {}".format(beta))
-
-    st = calc_stokes(sigma_g=sigma, grain_size=0.1)
-    print("Stokes number: {}".format(st))
-
-    return {'sigma_g': sigma, 'cs': cs, 'T':temp, 'H': H, 'h':h1, 'Q':Q, 'G_tilde':G, 'beta':beta, 'stoke':st}
-
-
+"""
 ######################################
-r, M, M_disk = 30*const.au.cgs.value, const.M_sun.cgs.value, 0.2
-print(parameters(r,M,M_disk))
+#r, r_c, M, M_disk = 30*const.au.cgs.value, 300*const.au.cgs.value, const.M_sun.cgs.value, 0.2*const.M_sun.cgs.value
+#model = Model(r,M_star=M, M_disk=M_disk, r_c=r_c)
+#model.get_params()
+######################################
+
 
 """
 #Disk model plot
@@ -235,35 +279,43 @@ print(parameters(r,M,M_disk))
 import numpy as  np 
 import matplotlib.pyplot as plt  
 import astropy.constants as const
+from StreamingInstability_YJ14 import disk_model
 
-M_disk = 0.2
-r = np.arange(30,101,1)
-compact, large = disk_model.calc_sigma_g(r, M_disk=M_disk), disk_model.calc_sigma_g(r,M_disk=M_disk,r_c=300)
-temp = T(r*const.au.cgs.value)
-  
-plt.plot(r, compact, label='Compact Disk')
+M_star, M_disk = const.M_sun.cgs.value, 0.05*const.M_sun.cgs.value
+r, r_c = np.arange(30,101,1), 300
+r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
 
-fig, axes = plt.subplots(nrows=2)
-ax1, ax2 = axes
-ax1.plot(r, large, c='k')
+model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1)
+
+fig, axes = plt.subplots(nrows=3)
+ax1, ax2, ax3 = axes
+ax1.plot(r/const.au.cgs.value, model.sigma_g, c='k')
 ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=14)
-ax1.set_ylim(0,31)
+ax1.set_ylim(0,10)
 ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
 ax1.tick_params(labelsize=14, axis="both", which="both")
 ax1.set_title('Disk Model',size=16)
 ax1.set_xticklabels([])
 
 
-ax2.plot(r, temp, c='k')
-ax2.set_xlabel('Radius (AU)', size=14)
+ax2.plot(r/const.au.cgs.value, model.T, c='k')
+#ax2.set_xlabel('Radius [AU]', size=14)
 ax2.set_ylabel('T [K]', size=14)
 ax2.tick_params(labelsize=14, axis="both", which="both")
 ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
 ax2.set_ylim(20, 36)
+ax2.set_xticklabels([])
+
+ax3.plot(r/const.au.cgs.value, model.H/const.au.cgs.value, c='k')
+ax3.set_xlabel('Radius [AU]', size=14)
+ax3.set_ylabel('H [AU]', size=14)
+ax3.tick_params(labelsize=14, axis="both", which="both")
+ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+ax3.set_ylim(2, 11)
 
 plt.savefig('Disk_Model.png', dpi=300, bbox_inches='tight')
-
+plt.clf()
 
 
 plt.plot(r, large, label='Large Disk')
