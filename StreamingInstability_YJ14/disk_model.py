@@ -31,7 +31,8 @@ class Model:
             for compact disks is about 30 AU, and 300 AU for large disks.
         M_star (float): Mass of the central star, in cgs units.
         M_disk (float): Mass of the disk, in cgs units. 
-        grain_size (float): Grain size, in cgs units. Defaults to 1 mm.
+        grain_size (float): Grain size, in cgs units. Only use if no stoke's number
+            is input, as that will overwrite this value. Defaults to 1 mm.
         grain_rho (float): Internal grain density in cgs units. Defaults to 1 g/cm2.
         T0 (float): Temperature at r=0, defaults to 150 K, which is an accepted standard.
         q (float): Power law index, defaults to 3/7, which is an accepted standard.
@@ -39,13 +40,15 @@ class Model:
         mmol (float): Mean molecular weight, defaults to 2.3, corresponding
             to 5 parts molecular H and 1 part He1.
         Z (float): The global solids-to-gas ratio. Defaults to 0.01.
+        st (float): Stoke's number, if input then the grain sizes at each
+            r will be computed. Defaults to None. 
     
     Attributes:
         get_params: Calculates all disk parameters
 
     """
     def __init__(self, r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1,
-        T0=150, q=3./7, gamma=1, mmol=2.3, Z=0.01):
+        T0=150, q=3./7, gamma=1, mmol=2.3, Z=0.01, stoke=None):
 
         self.r = r 
         self.r_c = r_c
@@ -58,6 +61,7 @@ class Model:
         self.gamma = gamma 
         self.mmol = mmol 
         self.Z = Z 
+        self.stoke = stoke
 
         self.sigma_g = None
         self.sigma_d = None  
@@ -68,16 +72,13 @@ class Model:
         self.Q = None 
         self.G = None 
         self.beta = None 
-        self.st = None 
-
-        self.a = None 
 
         self.get_params(print_params=False)
 
 
     def get_params(self, print_params=True):
         """
-        Calculates the disk parameters according to the fiducial models
+        Calculates the disk parameters according to power law profiles.
         """
 
         self.calc_omega()
@@ -90,7 +91,11 @@ class Model:
         self.calc_Q()
         self.calc_G()
         self.calc_beta()
-        self.calc_stokes()
+
+        if self.stoke is None:
+            self.calc_stokes()
+        else:
+            self.calc_grain_sizes()
 
         if print_params:
             print('Sigma_g: {} g/cm2'.format(self.sigma_g))
@@ -102,7 +107,8 @@ class Model:
             print('Q: {}'.format(self.Q))
             print('G: {}'.format(self.G))
             print('beta: {}'.format(self.beta))
-            print('Stokes: {}'.format(self.st))
+            print('Stokes: {}'.format(self.stoke))
+            print('Grain Radius: {}'.format(self.grain_size))
 
         return 
 
@@ -146,11 +152,11 @@ class Model:
             Stoke's number.
         """
 
-        self.st = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
+        self.stoke = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
 
         return
 
-    def calc_grain_sizes(self, stoke):
+    def calc_grain_sizes(self):
         """
         Calculates the grain sizes, to use if stoke's number is constant
 
@@ -158,7 +164,7 @@ class Model:
             Grain sizes, a.
         """
 
-        self.a = 2 * stoke * self.sigma_g / np.pi / self.grain_rho
+        self.grain_size = 2 * self.stoke * self.sigma_g / np.pi / self.grain_rho
 
     def calc_omega(self):
         """
@@ -286,35 +292,59 @@ r, r_c = np.arange(30,101,1), 300
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
 
-model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1)
+model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1, Z=0.02, st=0.3)
 
-fig, axes = plt.subplots(nrows=3)
-ax1, ax2, ax3 = axes
+fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
+fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.92)
+((ax1, ax4), (ax2, ax5), (ax3, ax6)) = axes
 ax1.plot(r/const.au.cgs.value, model.sigma_g, c='k')
-ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=14)
-ax1.set_ylim(0,10)
+ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=18)
+ax1.set_ylim(1,8)
 ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
 ax1.tick_params(labelsize=14, axis="both", which="both")
-ax1.set_title('Disk Model',size=16)
+#ax1.set_title('Disk Model',size=18)
 ax1.set_xticklabels([])
 
 
 ax2.plot(r/const.au.cgs.value, model.T, c='k')
-#ax2.set_xlabel('Radius [AU]', size=14)
-ax2.set_ylabel('T [K]', size=14)
+ax2.set_ylabel('T [K]', size=18)
 ax2.tick_params(labelsize=14, axis="both", which="both")
 ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
 ax2.set_ylim(20, 36)
 ax2.set_xticklabels([])
 
 ax3.plot(r/const.au.cgs.value, model.H/const.au.cgs.value, c='k')
-ax3.set_xlabel('Radius [AU]', size=14)
-ax3.set_ylabel('H [AU]', size=14)
+ax3.set_xlabel('Radius [AU]', size=18)
+ax3.set_ylabel('H [AU]', fontsize=18)
 ax3.tick_params(labelsize=14, axis="both", which="both")
 ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-ax3.set_ylim(2, 11)
+#ax3.set_ylim(1.5, 11)
 
-plt.savefig('Disk_Model.png', dpi=300, bbox_inches='tight')
+ax4.plot(r/const.au.cgs.value, model.sigma_d, c='k')
+ax4.set_ylabel(r'$\Sigma_d \ [g \ cm^{-2}]$', fontsize=18)
+#ax4.set_ylim(0,10)
+ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+ax4.tick_params(labelsize=14, axis="both", which="both")
+#ax4.set_title('Disk Model',size=18)
+ax4.set_xticklabels([])
+
+ax5.plot(r/const.au.cgs.value, model.cs*1e-5, c='k')
+ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
+ax5.tick_params(labelsize=14, axis="both", which="both")
+ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+#ax5.set_ylim(20, 36)
+ax5.set_xticklabels([])
+
+ax6.plot(r/const.au.cgs.value, model.Q, c='k')
+ax6.set_xlabel('Radius [AU]', size=18)
+ax6.set_ylabel('Toomre Q', fontsize=18)
+ax6.tick_params(labelsize=14, axis="both", which="both")
+ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+#ax3.set_ylim(1.5, 11)
+
+
+
+plt.savefig('Disk_Model_All.png', dpi=300, bbox_inches='tight')
 plt.clf()
 
 
