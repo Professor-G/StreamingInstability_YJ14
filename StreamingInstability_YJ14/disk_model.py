@@ -5,7 +5,9 @@ Created on Fri Aug 12 09:25:13 2022
 
 @author: daniel
 """
+
 import numpy as  np 
+from pathlib import Path
 import matplotlib.pyplot as plt  
 import astropy.constants as const  
 
@@ -93,9 +95,15 @@ class Model:
         self.calc_beta()
 
         if self.stoke is None:
+            if isinstance(self.grain_size, np.ndarray):
+                raise ValueError('If stokes number is None, the grain size must contain only value!')
             self.calc_stokes()
+            self.plot_stoke = True
         else:
+            if isinstance(self.stoke, np.ndarray):
+                raise ValueError('Only one stoke number can be input!')
             self.calc_grain_sizes()
+            self.plot_stoke = False 
 
         if print_params:
             print('Sigma_g: {} g/cm2'.format(self.sigma_g))
@@ -260,7 +268,85 @@ class Model:
 
         return 
 
+    def plot(self, savefig=False, path=None):
+        """
+        Plots the model parameters.
 
+        Args:
+            save (bool): If True the figure will be saved only. Defaults to False.
+
+        Returns:
+            AxesPlot 
+        """
+
+        fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(18,12))
+        fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.92)
+        ((ax1, ax4), (ax2, ax5), (ax3, ax6), (ax7, ax8)) = axes
+
+        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k')
+        ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=18)
+        ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax1.tick_params(labelsize=14, axis="both", which="both")
+        ax1.set_xticklabels([])
+
+        ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
+        ax2.set_ylabel('T [K]', size=18)
+        ax2.tick_params(labelsize=14, axis="both", which="both")
+        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax2.set_xticklabels([])
+
+        ax3.plot(self.r/const.au.cgs.value, self.H/const.au.cgs.value, c='k')
+        ax3.set_ylabel('H [AU]', fontsize=18)
+        ax3.tick_params(labelsize=14, axis="both", which="both")
+        ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax3.set_xticklabels([])
+
+        ax4.plot(self.r/const.au.cgs.value, self.sigma_d, c='k')
+        ax4.set_ylabel(r'$\Sigma_d \ [g \ cm^{-2}]$', fontsize=18)
+        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.set_xticklabels([])
+
+        ax5.plot(self.r/const.au.cgs.value, self.cs*1e-5, c='k')
+        ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
+        ax5.tick_params(labelsize=14, axis="both", which="both")
+        ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax5.set_xticklabels([])
+
+        ax6.plot(self.r/const.au.cgs.value, self.Q, c='k')
+        ax6.set_ylabel('Toomre Q', fontsize=18)
+        ax6.tick_params(labelsize=14, axis="both", which="both")
+        ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax6.set_xticklabels([])
+
+        if self.plot_stoke:
+            ax7.plot(self.r/const.au.cgs.value, self.stoke, c='k')
+            ax7.set_ylabel('Stoke', fontsize=18)
+        else:
+            ax7.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
+            ax7.set_ylabel('Grain Radius [cm]', fontsize=18)
+        ax7.tick_params(labelsize=14, axis="both", which="both")
+        ax7.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax7.set_xlabel('Radius [AU]', size=18)
+
+        ax8.plot(self.r/const.au.cgs.value, self.beta, c='k')
+        ax8.set_ylabel(r'$\beta$', fontsize=18)
+        ax8.set_xlabel('Radius [AU]', size=18)
+        ax8.tick_params(labelsize=14, axis="both", which="both")
+        ax8.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+
+        if savefig:
+            if path is None:
+                path = str(Path.home())
+            if path[-1] != '/':
+                path+='/'
+            plt.savefig(path+'Disk_Model.png', dpi=300, bbox_inches='tight')
+            print('Figure saved in: {}'.format(path))
+            plt.clf()
+        else:
+            plt.show()
+
+        return 
 """
 def aspect_ratio(r, M, mmol=2.3):
     Aspect ratio, as a function of T 
@@ -272,12 +358,6 @@ def sound_speed(r, gamma=1.4, mmol=2.3):
     cp = gamma*Rgasmu / (gamma-1)
     return np.sqrt(T(r)*cp*(gamma-1))
 """
-######################################
-#r, r_c, M, M_disk = 30*const.au.cgs.value, 300*const.au.cgs.value, const.M_sun.cgs.value, 0.2*const.M_sun.cgs.value
-#model = Model(r,M_star=M, M_disk=M_disk, r_c=r_c)
-#model.get_params()
-######################################
-
 
 """
 #Disk model plot
@@ -287,87 +367,20 @@ import matplotlib.pyplot as plt
 import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
 
-M_star, M_disk = const.M_sun.cgs.value, 0.05*const.M_sun.cgs.value
+M_star, M_disk = const.M_sun.cgs.value, 0.02*const.M_sun.cgs.value
 r, r_c = np.arange(30,101,1), 300
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
 
-model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1, Z=0.02, st=0.3)
-
-fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
-fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.92)
-((ax1, ax4), (ax2, ax5), (ax3, ax6)) = axes
-ax1.plot(r/const.au.cgs.value, model.sigma_g, c='k')
-ax1.set_ylabel(r'$\Sigma_g \ [g \ cm^{-2}]$', fontsize=18)
-ax1.set_ylim(1,8)
-ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-ax1.tick_params(labelsize=14, axis="both", which="both")
-#ax1.set_title('Disk Model',size=18)
-ax1.set_xticklabels([])
-
-
-ax2.plot(r/const.au.cgs.value, model.T, c='k')
-ax2.set_ylabel('T [K]', size=18)
-ax2.tick_params(labelsize=14, axis="both", which="both")
-ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-ax2.set_ylim(20, 36)
-ax2.set_xticklabels([])
-
-ax3.plot(r/const.au.cgs.value, model.H/const.au.cgs.value, c='k')
-ax3.set_xlabel('Radius [AU]', size=18)
-ax3.set_ylabel('H [AU]', fontsize=18)
-ax3.tick_params(labelsize=14, axis="both", which="both")
-ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-#ax3.set_ylim(1.5, 11)
-
-ax4.plot(r/const.au.cgs.value, model.sigma_d, c='k')
-ax4.set_ylabel(r'$\Sigma_d \ [g \ cm^{-2}]$', fontsize=18)
-#ax4.set_ylim(0,10)
-ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-ax4.tick_params(labelsize=14, axis="both", which="both")
-#ax4.set_title('Disk Model',size=18)
-ax4.set_xticklabels([])
-
-ax5.plot(r/const.au.cgs.value, model.cs*1e-5, c='k')
-ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
-ax5.tick_params(labelsize=14, axis="both", which="both")
-ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-#ax5.set_ylim(20, 36)
-ax5.set_xticklabels([])
-
-ax6.plot(r/const.au.cgs.value, model.Q, c='k')
-ax6.set_xlabel('Radius [AU]', size=18)
-ax6.set_ylabel('Toomre Q', fontsize=18)
-ax6.tick_params(labelsize=14, axis="both", which="both")
-ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-#ax3.set_ylim(1.5, 11)
-
-
-
-plt.savefig('Disk_Model_All.png', dpi=300, bbox_inches='tight')
-plt.clf()
-
-
-plt.plot(r, large, label='Large Disk')
-plt.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-plt.legend(prop={'size':16})
-plt.tick_params(labelsize=14, axis="both", which="both")
-plt.xlabel('Radius (AU)', size=18)
-plt.ylabel(r'$\Sigma_g \ (g \ cm^{-2})$', fontsize=18)
-plt.title('Disk Model',size=20)
-#plt.xscale('log')
-#plt.yscale('log')
-plt.savefig('Disk_Models', dpi=300, bbox_inches='tight')
-
-plt.show()
+model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1, Z=0.02, stoke=0.3)
+model.plot(savefig=True)
 
 
 #Stokes number at different sigma_g and grain size
 
 radii = np.array([10, 30, 100])
 grain_size = np.array([1, 0.3, 0.1, 0.03])
-sigma_g = disk_model.calc_sigma_g(radii, M_disk=M_disk, r_c=300)
-stoke = calc_stokes(grain_size=grain_size, grain_rho=1, sigma_g=sigma_g)
+
 """
 
 
