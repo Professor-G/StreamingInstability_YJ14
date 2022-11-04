@@ -373,7 +373,7 @@ class density_cube:
 
         return 
         
-    def plot_tau(self):
+    def plot_tau(self, title='Optical Depth', savefig=False, filename='tau'):
         """
         Plots the optical depth at the exit plane.
         """
@@ -384,8 +384,12 @@ class density_cube:
         plt.colorbar()
         plt.xlabel('x (H)', size=16)
         plt.ylabel('y (H)', size=16)
-        plt.title('Optical Depth', size=18)
-        plt.show()
+        plt.title(title, size=18)
+        if savefig:
+            plt.savefig(filename+'.png', bbox_inches='tight', dpi=300)
+            plt.clf()
+        else:
+            plt.show()
 
     def plot_flux(self):
         """
