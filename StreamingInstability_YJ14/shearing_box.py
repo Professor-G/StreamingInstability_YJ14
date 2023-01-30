@@ -302,11 +302,19 @@ class density_cube:
             for grain in range(len(self.grain_size)):
                 self.grain_size[grain] = self.stoke[grain] * 2. * self.column_density / np.pi / self.rho_grain[grain]
         
+        #self.grain_size *= 2 #Make this the diameter
+        
         return
 
-    def extract_opacity(self):
+    def extract_opacity(self, scattering=False):
         """
-        Returns opacity according to grain size
+        Returns opacity according to grain size.
+
+        Args:
+            scattering (bool): If True the opacity will be
+                the sum of both the absorption and the scattering
+                opacities, defaults to False in which only
+                the mass absorption coefficient is used
         """
 
         try:
@@ -323,8 +331,10 @@ class density_cube:
             if self.grain_size < a.min():
                 raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
 
-            self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
-
+            if scattering:
+                self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
+            else:
+                self.kappa = k_abs_fit(self.grain_size)
         else:
             if self.grain_size.max() > a.max():
                 raise ValueError('Maximum grain size supported is '+str(a.max())+' cm')
@@ -333,8 +343,10 @@ class density_cube:
 
             self.kappa = np.zeros(len(self.grain_size))
             for grain in self.grain_size:
-                self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
-
+                if scattering:
+                    self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
+                else:
+                    self.kappa = k_abs_fit(self.grain_size)
         return 
 
     def get_proto_mass(self):

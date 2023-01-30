@@ -14,12 +14,335 @@ import astropy.constants as const
 
 class Model:
     """
-    Creates the disk model.
+    Disk model from Bai & Stone (2018): https://arxiv.org/pdf/1005.4982.pdf
 
+    This model assumes a solar nebula with a vertically isothermal
+    disk. The disk is parameterized according to a set of power laws (Youdin & Shu 2002)
+    
+    Args:
+        r (float): Distance in cgs units. 
+        b (float): Gas profile law index, defaults to 3/2.
+        c (float): Temperature profile law index, defaults to 1/2.
+        grain_size (float): Grain size, in cgs units. Only use if no stoke's number
+            is input, as that will overwrite this value. Defaults to 1 mm.
+        grain_rho (float): Internal grain density in cgs units. Defaults to 1 g/cm2.
+        Z (float): The global solids-to-gas ratio. Defaults to 0.02.
+        stoke (float): Stoke's number, if input then the grain sizes at each
+            r will be computed. Defaults to None, in which case the stoke's
+            number at each r will be calculated.
+        
+    Attributes:
+        get_params: Calculates all disk parameters
+    """
+
+    def __init__(self, r, b=1.5, c=0.5, grain_size=0.1, grain_rho=1, Z=0.02, stoke=None):
+
+        self.r = r 
+        self.b = b
+        self.c = c  
+        self.grain_size = grain_size
+        self.grain_rho = grain_rho
+        self.Z = Z 
+        self.stoke = stoke
+
+        self.get_params(print_params=False)
+
+
+    def get_params(self, print_params=True):
+        """
+        Calculates the disk parameters according to power law profiles.
+        """
+
+        self.calc_omega()
+        self.calc_sigma_g() 
+        self.calc_sigma_d()
+        self.calc_T()
+        self.calc_cs()
+        self.calc_H()
+        self.calc_h()
+        self.calc_Q()
+        self.calc_G()
+        self.calc_vk()
+        self.calc_big_pi()
+        self.calc_beta()
+
+        if self.stoke is None:
+            if isinstance(self.grain_size, np.ndarray):
+                raise ValueError('If stokes number is None, the grain size must contain only value!')
+            self.calc_stokes()
+            self.plot_stoke = True
+        else:
+            if isinstance(self.stoke, np.ndarray):
+                raise ValueError('Only one stoke number can be input!')
+            self.calc_grain_sizes()
+            self.plot_stoke = False 
+
+        if print_params:
+            print('Sigma_g: {} g/cm2'.format(self.sigma_g))
+            print('Sigma_d: {} g/cm2'.format(self.sigma_d))
+            print('cs: {} cm/s'.format(self.cs))
+            print('T : {} K'.format(self.T))
+            print('H: {} AU'.format(self.H))
+            print('h {}'.format(self.h))
+            print('Q: {}'.format(self.Q))
+            print('G: {}'.format(self.G))
+            print('beta: {}'.format(self.beta))
+            print('Stokes: {}'.format(self.stoke))
+            print('Grain Radius: {}'.format(self.grain_size))
+
+        return 
+
+    def calc_sigma_g(self):
+        """
+        Gas surface mass density from the MMSN model (Hayashi 1981)
+      
+        Returns:
+            Gas surface density profile [g/cm2]
+        """
+
+        self.sigma_g = 1700*(self.r/const.au.cgs.value)**-self.b
+
+    def calc_sigma_d(self):
+        """
+        Calculates the dust surface density, according to the
+        dust to gas ratio
+
+        Returns:
+            Dust surface density [g/cm2]
+        """
+
+        self.sigma_d = self.sigma_g * self.Z
+
+    def calc_stokes(self):
+        """
+        Calculates the Stokes number according to the gas
+        column density at each raddi and the corresponding
+        grain properties
+
+        Returns:
+            Stoke's number.
+        """
+
+        self.stoke = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
+
+
+    def calc_grain_sizes(self):
+        """
+        Calculates the grain sizes, to use if stoke's number is constant
+
+        Returns:
+            Grain size(s) [cm]
+        """
+
+        self.grain_size = 2 * self.stoke * self.sigma_g / np.pi / self.grain_rho
+
+
+    def calc_cs(self):
+        """
+        Sound speed, assumes a mean molecular weight of 2.34
+
+        Returns
+            Sound speed in [cm/s]
+        """
+
+
+        #molecule_mass = self.mmol * const.m_p.cgs.value #Mass of hydrogen molecule
+        #self.cs = np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
+        self.cs = 1**(1./2)*(self.r/const.au.cgs.value)**(-self.c/2)
+        self.cs = self.cs * 1e5 #km/s to cm/s
+
+    def calc_omega(self):
+        """
+        Keplerian angular velocity.
+
+        Returns:
+            Keplerian velocity in [1/s]
+        """
+
+        #self.omega = np.sqrt(const.G.cgs.value * const.M_sun.cgs.value / self.r**3)
+        self.omega = 2*np.pi*1**(1./2)*(self.r/const.au.cgs.value)**(-3./2)
+        self.omega = self.omega / 3.156e7 #1/yr to 1/s conversion
+
+    def calc_vk(self):
+        """
+        Rotational velocity
+
+        Returns
+            Velocity [cm/s]
+        """
+
+        self.vk = 30*1**(1./2)*(self.r/const.au.cgs.value)**(-1./2)
+        self.vk = self.vk * 1e5 #km/s to cm/s
+
+    def calc_Q(self):
+        """
+        Toomre Q parameter (dimensionless)
+
+        Returns:
+            ToomreQ
+        """
+
+        self.Q = self.cs * self.omega / np.pi / const.G.cgs.value / self.sigma_g
+
+    def calc_T(self):
+        """
+        Radial temperature of the disk
+
+        Args:
+            f_t: Model parameter for the MSN model advocated by Hayashi (1981).
+            c (float): Power law index, defaults to 3/2.
+
+        Returns:
+            Disk temperature T [K]
+        """
+
+        self.T = 280.0*(self.r/const.au.cgs.value)**-self.c
+
+    def calc_H(self):
+        """
+        Gas scale height
+    
+        Returns:
+            Gas scale height H [AU]
+        """
+        #self.H = self.cs / self.omega / const.au.cgs.value
+        self.H = 3.4e-2*1**(1./2)*1**(-1./2)*(self.r/const.au.cgs.value)**((3-self.c)/2.)
+
+    def calc_h(self):
+        """
+        Calculates the aspect ratio, h
+
+        Returns:
+            Aspect ratio.
+        """
+        
+        self.h = self.H / (self.r/const.au.cgs.value)
+
+    def calc_G(self):
+        """
+        G tilde self-gravity parameter.
+
+        Returns:
+            G Tilde parameter.
+        """
+
+        self.G = np.sqrt(8/np.pi) / self.Q
+
+    def calc_big_pi(self):
+        """
+        Big pi calculated assuming solar parameters and MMSN
+        power law indices. The z-dependence is ignored since
+        z << Hg 
+        Bai & Stone :https://arxiv.org/pdf/1005.4982.pdf
+        """
+
+        self.big_pi = 0.054*1**(1./2)*1**(-1./2)*(self.r/const.au.cgs.value)**(1./4)
+        #self.big_pi = (3+2*self.b+self.c)/4. * self.cs/self.vk
+
+    def calc_beta(self):
+        """
+        Calculates pressure gradient parameter
+        """
+
+        self.beta = 2.0 * self.big_pi 
+
+    def plot(self, savefig=False, path=None, box_index=None):
+        """
+        Plots the model parameters.
+        Args:
+            save (bool): If True the figure will be saved only. Defaults to False.
+        Returns:
+            AxesPlot 
+        """
+
+        fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
+        fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.92)
+        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
+
+        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k')
+        if box_index is not None:
+            ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
+        ax1.set_ylabel(r'$\Sigma_g \ [\rm g \ \rm cm^{-2}]$', fontsize=18)
+        ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax1.tick_params(labelsize=14, axis="both", which="both")
+        ax1.set_xticklabels([])
+
+        ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
+        if box_index is not None:
+            ax2.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
+        ax2.set_ylabel('T [K]', size=18)
+        ax2.tick_params(labelsize=14, axis="both", which="both")
+        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax2.set_xticklabels([])
+
+        ax3.plot(self.r/const.au.cgs.value, self.H/const.au.cgs.value, c='k')
+        if box_index is not None:
+            ax3.scatter(self.r[box_index]/const.au.cgs.value, self.H[box_index]/const.au.cgs.value, marker='s', s=100)
+        ax3.set_ylabel('H [AU]', fontsize=18)
+        ax3.tick_params(labelsize=14, axis="both", which="both")
+        ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax3.set_xticklabels([])
+        """
+        ax4.plot(self.r/const.au.cgs.value, self.sigma_d, c='k')
+        ax4.set_ylabel(r'$\Sigma_d \ [g \ cm^{-2}]$', fontsize=18)
+        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.set_xticklabels([])
+        
+        ax5.plot(self.r/const.au.cgs.value, self.cs*1e-5, c='k')
+        ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
+        ax5.tick_params(labelsize=14, axis="both", which="both")
+        ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax5.set_xticklabels([])
+        """
+        ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
+        if box_index is not None:
+            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
+        ax4.set_ylabel('Toomre Q', fontsize=18)
+        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax4.set_xticklabels([])
+
+        if self.plot_stoke:
+            ax5.plot(self.r/const.au.cgs.value, self.stoke, c='k')
+            if box_index is not None:
+                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.stoke[box_index], marker='s', s=100)
+            ax5.set_ylabel('Stoke', fontsize=18)
+        else:
+            ax5.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
+            if box_index is not None:
+                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
+            ax5.set_ylabel('Grain Radius [cm]', fontsize=18)
+        ax5.tick_params(labelsize=14, axis="both", which="both")
+        ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax5.set_xlabel('Radius [AU]', size=18)
+
+        ax6.plot(self.r/const.au.cgs.value, self.beta/2., c='k')
+        if box_index is not None:
+            ax6.scatter(self.r[box_index]/const.au.cgs.value, self.beta[box_index]/2., marker='s', s=100)
+        ax6.set_ylabel(r'$\prod$', fontsize=18)
+        ax6.set_xlabel('Radius [AU]', size=18)
+        ax6.tick_params(labelsize=14, axis="both", which="both")
+        ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+
+        if savefig:
+            if path is None:
+                path = str(Path.home())
+            if path[-1] != '/':
+                path+='/'
+            plt.savefig(path+'Disk_Model.png', dpi=300, bbox_inches='tight')
+            print('Figure saved in: {}'.format(path))
+            plt.clf()
+        else:
+            plt.show()
+
+
+class Model_2:
+    """
+    Creates the disk model.
     The gas surface density is defined in Section 2 of Drazkowska et al (2022)
     See: https://arxiv.org/pdf/2101.01728.pdf
-
-    The temperature model from Ida et al. , see:2016: https://arxiv.org/pdf/1604.01291.pdf
+    The temperature model from Ida et al. see:2016: https://arxiv.org/pdf/1604.01291.pdf
     Note that the temperature profile is for outer regions of the disk only 
     where viscous heating is negligible. 
 
@@ -47,7 +370,6 @@ class Model:
     
     Attributes:
         get_params: Calculates all disk parameters
-
     """
     def __init__(self, r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1,
         T0=150, q=3./7, gamma=1, mmol=2.3, Z=0.01, stoke=None):
@@ -118,8 +440,6 @@ class Model:
             print('Stokes: {}'.format(self.stoke))
             print('Grain Radius: {}'.format(self.grain_size))
 
-        return 
-
     def calc_sigma_g(self):
         """
         Calculates the gas surface density, as per the protoplanetary 
@@ -130,12 +450,7 @@ class Model:
             Gas surface density at the specified r.
         """
 
-        #M_disk = self.M_disk*const.M_sun.cgs.value
-        #r_c = self.r_c*const.au.cgs.value
-
         self.sigma_g = ((self.M_disk/(2.*np.pi*self.r_c**2))*(self.r/self.r_c)**-1)*np.e**(-(self.r/self.r_c))
-
-        return 
 
     def calc_sigma_d(self):
         """
@@ -149,27 +464,22 @@ class Model:
 
         self.sigma_d = self.sigma_g * self.Z
 
-        return  
-
     def calc_stokes(self):
         """
         Calculates the Stokes number according to the gas
         column density and the grain properties
-
         Returns:
             Stoke's number.
         """
 
         self.stoke = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
 
-        return
-
     def calc_grain_sizes(self):
         """
         Calculates the grain sizes, to use if stoke's number is constant
-
+        
         Returns:
-            Grain sizes, a.
+            Grain sizes, a, two times the grain radius.
         """
 
         self.grain_size = 2 * self.stoke * self.sigma_g / np.pi / self.grain_rho
@@ -177,32 +487,25 @@ class Model:
     def calc_omega(self):
         """
         Keplerian angular velocity.
-
         """
 
         self.omega = np.sqrt(const.G.cgs.value*self.M_star/self.r**3)
 
-        return
-
     def calc_Q(self):
         """
         Toomre Q parameter (dimensionless)
-
         Returns:
             ToomreQ
         """
 
         self.Q = self.cs * self.omega / np.pi / const.G.cgs.value / self.sigma_g
 
-        return
-
     def calc_T(self):
         """
         Temperature model from Ida et al. 2016: https://arxiv.org/pdf/1604.01291.pdf
-
+        
         Returns:
             Temperature as a function of distance, in cgs units.
-
         """
 
         self.T = self.T0*(self.r / const.au.cgs.value)**(-self.q)
@@ -217,8 +520,6 @@ class Model:
         
         self.h = self.H / self.r
 
-        return 
-
     def calc_cs(self):
         """
         Calculates the sound speed
@@ -231,16 +532,12 @@ class Model:
 
         self.cs = np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
 
-        return 
-
     def calc_H(self):
         """
         Calculates scale height
         """
 
         self.H = self.cs / self.omega
-
-        return
 
     def calc_G(self):
         """
@@ -252,89 +549,103 @@ class Model:
 
         self.G = np.sqrt(8/np.pi) / self.Q
 
-        return 
-
     def calc_beta(self):
         """
         Calculates the beta parameter
         beta = -h * dlnp/dlnr
         dlnp/dlnr = dlnSigma/dlnr - 0.5*dlnT/dlnr + dlnOmega/dlnr = -1 -0.5*-3/7 - 3/2 = -2.2857
-
+        
         Returns:
             beta
         """
 
-        self.beta = -self.h * -2.2857
+        self.beta = -self.h * -2.0# -2.2857
 
-        return 
-
-    def plot(self, savefig=False, path=None):
+    def plot(self, savefig=False, path=None, box_index=None):
         """
         Plots the model parameters.
-
         Args:
             save (bool): If True the figure will be saved only. Defaults to False.
-
         Returns:
             AxesPlot 
         """
-
+        #plt.style.use('/Users/daniel/Documents/plot_style.txt')
         fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
-        fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.92)
+        fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
         ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
 
         ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k')
+        if box_index is not None:
+            ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
         ax1.set_ylabel(r'$\Sigma_g \ [\rm g \ \rm cm^{-2}]$', fontsize=18)
         ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax1.tick_params(labelsize=14, axis="both", which="both")
+        ax1.set_xlim((5,100))#ax1.set_ylim((0,20)), ax1.set_xlim((5,100))
         ax1.set_xticklabels([])
 
-        ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
-        ax2.set_ylabel('T [K]', size=18)
-        ax2.tick_params(labelsize=14, axis="both", which="both")
-        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax2.set_xticklabels([])
+        ax4.plot(self.r/const.au.cgs.value, self.T, c='k')
+        if box_index is not None:
+            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
+        ax4.set_ylabel('T [K]', size=18)
+        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax4.set_xticklabels([])
+        ax4.set_xlim((5,100))#ax4.set_ylim((0,120)), ax4.set_xlim((5,100))
 
         ax3.plot(self.r/const.au.cgs.value, self.H/const.au.cgs.value, c='k')
-        ax3.set_ylabel('H [AU]', fontsize=18)
+        if box_index is not None:
+            ax3.scatter(self.r[box_index]/const.au.cgs.value, self.H[box_index]/const.au.cgs.value, marker='s', s=100)
+        ax3.set_ylabel(r'$c_s$ [m $\rm s^{-1}$]', fontsize=18)
         ax3.tick_params(labelsize=14, axis="both", which="both")
         ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax3.set_xticklabels([])
-        """
-        ax4.plot(self.r/const.au.cgs.value, self.sigma_d, c='k')
-        ax4.set_ylabel(r'$\Sigma_d \ [g \ cm^{-2}]$', fontsize=18)
-        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax4.tick_params(labelsize=14, axis="both", which="both")
-        ax4.set_xticklabels([])
+        ax3.set_xlim((5,100))#ax3.set_ylim((0,5)), ax3.set_xlim((5,100))
         
+        ax2.plot(self.r/const.au.cgs.value, self.sigma_d, c='k')
+        ax2.set_ylabel(r'$\Sigma_d \ [\rm g \ \rm cm^{-2}]$', fontsize=18)
+        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax2.tick_params(labelsize=14, axis="both", which="both")
+        ax2.set_xticklabels([])
+        ax2.set_xlim((5,100))#ax2.set_ylim((0,0.4)), ax2.set_xlim((5,100))
+        """
         ax5.plot(self.r/const.au.cgs.value, self.cs*1e-5, c='k')
         ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
         ax5.tick_params(labelsize=14, axis="both", which="both")
         ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax5.set_xticklabels([])
         """
-        ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
-        ax4.set_ylabel('Toomre Q', fontsize=18)
-        ax4.tick_params(labelsize=14, axis="both", which="both")
-        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax4.set_xticklabels([])
+        ax6.plot(self.r/const.au.cgs.value, self.Q, c='k')
+        if box_index is not None:
+            ax6.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
+        ax6.set_ylabel('Toomre Q', fontsize=18)
+        ax6.tick_params(labelsize=14, axis="both", which="both")
+        ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax6.set_xlabel('Radius [AU]', size=18)
+        ax6.set_xlim((5,100))#ax6.set_ylim((0,310))
 
         if self.plot_stoke:
             ax5.plot(self.r/const.au.cgs.value, self.stoke, c='k')
+            if box_index is not None:
+                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.stoke[box_index], marker='s', s=100)
             ax5.set_ylabel('Stoke', fontsize=18)
         else:
             ax5.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
+            if box_index is not None:
+                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
             ax5.set_ylabel('Grain Radius [cm]', fontsize=18)
         ax5.tick_params(labelsize=14, axis="both", which="both")
         ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax5.set_xlabel('Radius [AU]', size=18)
-
+        ax5.set_xlim((5,100))#ax5.set_ylim((0,4))
+        """
         ax6.plot(self.r/const.au.cgs.value, self.beta/2., c='k')
+        if box_index is not None:
+            ax6.scatter(self.r[box_index]/const.au.cgs.value, self.beta[box_index]/2., marker='s', s=100)
         ax6.set_ylabel(r'$\prod$', fontsize=18)
         ax6.set_xlabel('Radius [AU]', size=18)
         ax6.tick_params(labelsize=14, axis="both", which="both")
         ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-
+        """
         if savefig:
             if path is None:
                 path = str(Path.home())
@@ -347,6 +658,8 @@ class Model:
             plt.show()
 
         return 
+
+ 
 """
 def aspect_ratio(r, M, mmol=2.3):
     Aspect ratio, as a function of T 
@@ -360,6 +673,7 @@ def sound_speed(r, gamma=1.4, mmol=2.3):
 """
 
 """
+
 #Disk model plot
 
 import numpy as  np 
@@ -368,11 +682,19 @@ import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
 
 M_star, M_disk = const.M_sun.cgs.value, 0.02*const.M_sun.cgs.value
-r, r_c = np.arange(30,101,1), 300
+r, r_c = np.arange(5,100,.1), 300
+#r = 0.73
+#r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
-model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1, Z=0.03, stoke=0.3)
+model = disk_model.Model(r, grain_rho=1, Z=0.02, stoke=0.05)
+
+model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=2, Z=0.02, stoke=0.05, q=1, T0=600)
+
+
 model.plot(savefig=True)
+
+######
 
 stoke = np.zeros((4,3))
 sigma_g = np.zeros((4,3))
