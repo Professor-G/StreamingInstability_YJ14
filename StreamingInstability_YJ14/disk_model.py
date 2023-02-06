@@ -5,7 +5,6 @@ Created on Fri Aug 12 09:25:13 2022
 
 @author: daniel
 """
-
 import numpy as  np 
 from pathlib import Path
 import matplotlib.pyplot as plt  
@@ -522,10 +521,10 @@ class Model_2:
 
     def calc_cs(self):
         """
-        Calculates the sound speed
+        Calculates the sound speed.
 
         Returns
-            cs
+            cs [m/s]
         """
 
         molecule_mass = self.mmol * const.m_p.cgs.value #Mass of hydrogen molecule
@@ -572,80 +571,52 @@ class Model_2:
         #plt.style.use('/Users/daniel/Documents/plot_style.txt')
         fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
         fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
-        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
+        ((ax1, ax2), (ax3, ax4)) = axes
 
-        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k')
+        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k', label=r'$\Sigma_g$')
+        ax1.plot(self.r/const.au.cgs.value, self.T, c='k', linestyle='--', label=r'$\Sigma_d$')
         if box_index is not None:
             ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
-        ax1.set_ylabel(r'$\Sigma_g \ [\rm g \ \rm cm^{-2}]$', fontsize=18)
+        ax1.set_ylabel(r'Column Density $[\rm g \ \rm cm^{-2}]$', fontsize=18)
         ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax1.tick_params(labelsize=14, axis="both", which="both")
         ax1.set_xlim((5,100))#ax1.set_ylim((0,20)), ax1.set_xlim((5,100))
         ax1.set_xticklabels([])
+        ax1.set_legend()
 
-        ax4.plot(self.r/const.au.cgs.value, self.T, c='k')
+        ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
         if box_index is not None:
-            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
-        ax4.set_ylabel('T [K]', size=18)
-        ax4.tick_params(labelsize=14, axis="both", which="both")
-        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax4.set_xticklabels([])
-        ax4.set_xlim((5,100))#ax4.set_ylim((0,120)), ax4.set_xlim((5,100))
-
-        ax3.plot(self.r/const.au.cgs.value, self.H/const.au.cgs.value, c='k')
-        if box_index is not None:
-            ax3.scatter(self.r[box_index]/const.au.cgs.value, self.H[box_index]/const.au.cgs.value, marker='s', s=100)
-        ax3.set_ylabel(r'$c_s$ [m $\rm s^{-1}$]', fontsize=18)
-        ax3.tick_params(labelsize=14, axis="both", which="both")
-        ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax3.set_xticklabels([])
-        ax3.set_xlim((5,100))#ax3.set_ylim((0,5)), ax3.set_xlim((5,100))
-        
-        ax2.plot(self.r/const.au.cgs.value, self.sigma_d, c='k')
-        ax2.set_ylabel(r'$\Sigma_d \ [\rm g \ \rm cm^{-2}]$', fontsize=18)
-        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+            ax2.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
+        ax2.set_ylabel('T [K]', size=18)
         ax2.tick_params(labelsize=14, axis="both", which="both")
+        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax2.set_xticklabels([])
-        ax2.set_xlim((5,100))#ax2.set_ylim((0,0.4)), ax2.set_xlim((5,100))
-        """
-        ax5.plot(self.r/const.au.cgs.value, self.cs*1e-5, c='k')
-        ax5.set_ylabel(r'$c_s \ [km \ s^{-1}]$', size=18)
-        ax5.tick_params(labelsize=14, axis="both", which="both")
-        ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax5.set_xticklabels([])
-        """
-        ax6.plot(self.r/const.au.cgs.value, self.Q, c='k')
-        if box_index is not None:
-            ax6.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
-        ax6.set_ylabel('Toomre Q', fontsize=18)
-        ax6.tick_params(labelsize=14, axis="both", which="both")
-        ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax6.set_xlabel('Radius [AU]', size=18)
-        ax6.set_xlim((5,100))#ax6.set_ylim((0,310))
+        ax2.set_xlim((5,100))#ax4.set_ylim((0,120)), ax4.set_xlim((5,100))
 
         if self.plot_stoke:
-            ax5.plot(self.r/const.au.cgs.value, self.stoke, c='k')
+            ax3.plot(self.r/const.au.cgs.value, self.stoke, c='k')
             if box_index is not None:
-                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.stoke[box_index], marker='s', s=100)
-            ax5.set_ylabel('Stoke', fontsize=18)
+                ax3.scatter(self.r[box_index]/const.au.cgs.value, self.stoke[box_index], marker='s', s=100)
+            ax3.set_ylabel('Stoke', fontsize=18)
         else:
-            ax5.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
+            ax3.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
             if box_index is not None:
-                ax5.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
-            ax5.set_ylabel('Grain Radius [cm]', fontsize=18)
-        ax5.tick_params(labelsize=14, axis="both", which="both")
-        ax5.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        ax5.set_xlabel('Radius [AU]', size=18)
-        ax5.set_xlim((5,100))#ax5.set_ylim((0,4))
-        """
-        ax6.plot(self.r/const.au.cgs.value, self.beta/2., c='k')
+                ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
+            ax3.set_ylabel('Grain Radius [cm]', fontsize=18)
+        ax3.tick_params(labelsize=14, axis="both", which="both")
+        ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax3.set_xlabel('Radius [AU]', size=18)
+        ax3.set_xlim((5,100))#ax5.set_ylim((0,4))
+
+        ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
         if box_index is not None:
-            ax6.scatter(self.r[box_index]/const.au.cgs.value, self.beta[box_index]/2., marker='s', s=100)
-        ax6.set_ylabel(r'$\prod$', fontsize=18)
-        ax6.set_xlabel('Radius [AU]', size=18)
-        ax6.tick_params(labelsize=14, axis="both", which="both")
-        ax6.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
-        """
+            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
+        ax4.set_ylabel('Toomre Q', fontsize=18)
+        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        ax4.set_xlabel('Radius [AU]', size=18)
+        ax4.set_xlim((5,100))#ax6.set_ylim((0,310))
+
         if savefig:
             if path is None:
                 path = str(Path.home())
@@ -687,9 +658,15 @@ r, r_c = np.arange(5,100,.1), 300
 #r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
-model = disk_model.Model(r, grain_rho=1, Z=0.02, stoke=0.05)
+grain_rho = 1.675
+stoke=0.05
+Z = 0.02 
+q = 3/7.
+T0 = 150
 
-model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=2, Z=0.02, stoke=0.05, q=1, T0=600)
+q, T0 = 1., 600.
+
+model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
 
 
 model.plot(savefig=True)
@@ -701,11 +678,12 @@ sigma_g = np.zeros((4,3))
 beta = np.zeros((4,3))
 G = np.zeros((4,3))
 i=0
+
 for radius in [10, 30, 100]:
     r, r_c = radius*const.au.cgs.value, 300*const.au.cgs.value
     j=0
     for grain_size in [1, 0.3, 0.1, 0.03]:
-        model = disk_model.Model(r, r_c, M_star, M_disk, grain_size=grain_size, grain_rho=1, Z=0.02)
+        model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=grain_size, Z=Z, stoke=None, q=q, T0=T0)
         stoke[j,i] = model.stoke
         sigma_g[j,i] = model.sigma_g
         beta[j,i] = model.beta
