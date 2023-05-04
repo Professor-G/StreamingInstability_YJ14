@@ -13,10 +13,13 @@ import astropy.constants as const
 
 class Model:
     """
+    Creates the disk model.
+
     Disk model from Bai & Stone (2018): https://arxiv.org/pdf/1005.4982.pdf
 
-    This model assumes a solar nebula with a vertically isothermal
-    disk. The disk is parameterized according to a set of power laws (Youdin & Shu 2002)
+    This model assumes a solar nebula with a vertically isothermal disk. 
+
+    The disk is parameterized according to a set of power laws, see Youdin & Shu (2002)
     
     Args:
         r (float): Distance in cgs units. 
@@ -135,7 +138,6 @@ class Model:
 
         self.grain_size = 2 * self.stoke * self.sigma_g / np.pi / self.grain_rho
 
-
     def calc_cs(self):
         """
         Sound speed, assumes a mean molecular weight of 2.34
@@ -143,7 +145,6 @@ class Model:
         Returns
             Sound speed in [cm/s]
         """
-
 
         #molecule_mass = self.mmol * const.m_p.cgs.value #Mass of hydrogen molecule
         #self.cs = np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
@@ -248,6 +249,7 @@ class Model:
     def plot(self, savefig=False, path=None, box_index=None):
         """
         Plots the model parameters.
+
         Args:
             save (bool): If True the figure will be saved only. Defaults to False.
         Returns:
@@ -339,11 +341,14 @@ class Model:
 class Model_2:
     """
     Creates the disk model.
-    The gas surface density is defined in Section 2 of Drazkowska et al (2022)
+
+    The gas surface density is defined in Section 2 of Drazkowska et al. (2022)
     See: https://arxiv.org/pdf/2101.01728.pdf
-    The temperature model from Ida et al. see:2016: https://arxiv.org/pdf/1604.01291.pdf
-    Note that the temperature profile is for outer regions of the disk only 
-    where viscous heating is negligible. 
+
+    The temperature model is from Ida et al. (2016) 
+    See: https://arxiv.org/pdf/1604.01291.pdf
+
+    Note that the temperature profile is appropriate for outer regions of the disk where viscous heating is negligible. 
 
     Note:
         All inputs must be in cgs units!
@@ -569,29 +574,31 @@ class Model_2:
             AxesPlot 
         """
         #plt.style.use('/Users/daniel/Documents/plot_style.txt')
-        fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18,12))
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
         fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
         ((ax1, ax2), (ax3, ax4)) = axes
 
-        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k', label=r'$\Sigma_g$')
-        ax1.plot(self.r/const.au.cgs.value, self.T, c='k', linestyle='--', label=r'$\Sigma_d$')
+        ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k', label='Gas')#r'$\Sigma_g$')
+        ax1.plot(self.r/const.au.cgs.value, self.sigma_d, c='k', linestyle='--', label='Dust')#r'$\Sigma_d$')
         if box_index is not None:
             ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
         ax1.set_ylabel(r'Column Density $[\rm g \ \rm cm^{-2}]$', fontsize=18)
-        ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        #ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax1.tick_params(labelsize=14, axis="both", which="both")
-        ax1.set_xlim((5,100))#ax1.set_ylim((0,20)), ax1.set_xlim((5,100))
+        ax1.set_xlim((5,100)), ax1.set_ylim((1e-2,30))#, ax1.set_xlim((5,100))
         ax1.set_xticklabels([])
-        ax1.set_legend()
+        ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1, prop={'size': 18})
+        ax1.set_yscale('log'), ax1.set_xscale('log')
 
         ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
         if box_index is not None:
             ax2.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
         ax2.set_ylabel('T [K]', size=18)
         ax2.tick_params(labelsize=14, axis="both", which="both")
-        ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        #ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax2.set_xticklabels([])
-        ax2.set_xlim((5,100))#ax4.set_ylim((0,120)), ax4.set_xlim((5,100))
+        ax2.set_xlim((5,100)), ax2.set_ylim((5,130))
+        ax2.set_yscale('log'), ax2.set_xscale('log')
 
         if self.plot_stoke:
             ax3.plot(self.r/const.au.cgs.value, self.stoke, c='k')
@@ -604,18 +611,20 @@ class Model_2:
                 ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
             ax3.set_ylabel('Grain Radius [cm]', fontsize=18)
         ax3.tick_params(labelsize=14, axis="both", which="both")
-        ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        #ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax3.set_xlabel('Radius [AU]', size=18)
-        ax3.set_xlim((5,100))#ax5.set_ylim((0,4))
+        ax3.set_xlim((5,100)), ax3.set_ylim((1e-2,0.4))
+        ax3.set_yscale('log'), ax3.set_xscale('log')
 
         ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
         if box_index is not None:
             ax4.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
         ax4.set_ylabel('Toomre Q', fontsize=18)
         ax4.tick_params(labelsize=14, axis="both", which="both")
-        ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        #ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
         ax4.set_xlabel('Radius [AU]', size=18)
-        ax4.set_xlim((5,100))#ax6.set_ylim((0,310))
+        ax4.set_xlim((5,100)), ax4.set_ylim((10,320))
+        ax4.set_yscale('log'), ax4.set_xscale('log')
 
         if savefig:
             if path is None:
@@ -667,11 +676,17 @@ T0 = 150
 q, T0 = 1., 600.
 
 model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
+model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
 
 
 model.plot(savefig=True)
 
 ######
+
+grain_rho = 1.675
+Z = 0.03
+q = 3/7.
+T0 = 150
 
 stoke = np.zeros((4,3))
 sigma_g = np.zeros((4,3))
