@@ -15,7 +15,6 @@ import pkg_resources
 from scipy.interpolate import interp1d
 from scipy import stats  
 
-
 class density_cube:
     """
     Class for a density cube object. The class methods
@@ -34,7 +33,7 @@ class density_cube:
         T (float): Temperature of the entire box, as this model is isothermal.
             Defaults to 30.  
         H (float): Scale height of the box, the value is multiplied by one AU,
-            in cgs units. Defaults to 5.
+            in cgs units. Defaults to 5 AU.
         kappa (float):  Dust opacity coefficient, if None then the mm-wave
             dust opacity will be calculated according to column density and grain size,
             using the DSHARP code. (see:https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf) 
@@ -50,10 +49,15 @@ class density_cube:
             to one million. Only used to calculate the mass of protoplanets.
         aps (ndarray): pvar.aps, only used to calculate the mass of protoplanets.
         rhopswarm (ndarray): pvar.rhopswarm, only used to calculate the mass of protoplanets.
+        include_scattering (bool): If kappa is set to None, the DSHARP opacities will be applied. If 
+            this parameter is set to True, the scattering opacity will be used in addition to the absorption opacities.
+            This is relevant in the context of SI as the mass is dominated by the largest grains. Defaults to False, which '
+            will account for the absorption opacities only.
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5, kappa=None,
-        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None):
+        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None, 
+        include_scattering=False):
 
         self.data = data
         self.axis = axis 
@@ -68,10 +72,11 @@ class density_cube:
         self.aps = aps 
         self.rhopswarm = rhopswarm
         self.init_var = init_var
+        self.include_scattering = include_scattering
 
         try: 
-            len(stoke)
-            if len(stoke) != len(rho_grain):
+            __ = len(stoke)
+            if __ != len(rho_grain):
                 raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be of same size!")
         except:
             pass 
@@ -306,15 +311,9 @@ class density_cube:
         
         return
 
-    def extract_opacity(self, scattering=False):
+    def extract_opacity(self):
         """
         Returns opacity according to grain size.
-
-        Args:
-            scattering (bool): If True the opacity will be
-                the sum of both the absorption and the scattering
-                opacities, defaults to False in which only
-                the mass absorption coefficient is used
         """
 
         try:
@@ -331,7 +330,7 @@ class density_cube:
             if self.grain_size < a.min():
                 raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
 
-            if scattering:
+            if self.include_scattering:
                 self.kappa = k_abs_fit(self.grain_size) + k_sca_fit(self.grain_size)
             else:
                 self.kappa = k_abs_fit(self.grain_size)
@@ -343,7 +342,7 @@ class density_cube:
 
             self.kappa = np.zeros(len(self.grain_size))
             for grain in self.grain_size:
-                if scattering:
+                if self.include_scattering:
                     self.kappa[grain] = k_abs_fit(self.grain_size[grain]) + k_sca_fit(self.grain_size[grain])
                 else:
                     self.kappa = k_abs_fit(self.grain_size)

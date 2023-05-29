@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -8,8 +9,8 @@ Created on Fri Aug 12 09:25:13 2022
 import numpy as  np 
 from pathlib import Path
 import matplotlib.pyplot as plt  
+from cycler import cycler
 import astropy.constants as const  
-
 
 class Model:
     """
@@ -231,8 +232,8 @@ class Model:
     def calc_big_pi(self):
         """
         Big pi calculated assuming solar parameters and MMSN
-        power law indices. The z-dependence is ignored since
-        z << Hg 
+        power law indices. The z-dependence is ignored since z << Hg 
+
         Bai & Stone :https://arxiv.org/pdf/1005.4982.pdf
         """
 
@@ -331,9 +332,10 @@ class Model:
                 path = str(Path.home())
             if path[-1] != '/':
                 path+='/'
+            _set_style_()
             plt.savefig(path+'Disk_Model.png', dpi=300, bbox_inches='tight')
             print('Figure saved in: {}'.format(path))
-            plt.clf()
+            plt.clf(); plt.style.use('default')
         else:
             plt.show()
 
@@ -498,6 +500,7 @@ class Model_2:
     def calc_Q(self):
         """
         Toomre Q parameter (dimensionless)
+        
         Returns:
             ToomreQ
         """
@@ -565,15 +568,20 @@ class Model_2:
 
         self.beta = -self.h * -2.0# -2.2857
 
-    def plot(self, savefig=False, path=None, box_index=None):
+    def plot(self, savefig=False, include_grid=False, path=None, box_index=None):
         """
         Plots the model parameters.
+
         Args:
-            save (bool): If True the figure will be saved only. Defaults to False.
+            savefig (bool): If True the figure will be saved only. Defaults to False.
+            include_grid (bool): Whether to include the plot gird. Defaults to False.
+            path (str):
+            box_index (int):
+
         Returns:
             AxesPlot 
         """
-        #plt.style.use('/Users/daniel/Documents/plot_style.txt')
+
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
         fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
         ((ax1, ax2), (ax3, ax4)) = axes
@@ -583,22 +591,32 @@ class Model_2:
         if box_index is not None:
             ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
         ax1.set_ylabel(r'Column Density $[\rm g \ \rm cm^{-2}]$', fontsize=18)
-        #ax1.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        if include_grid:
+            ax1.xaxis.set_major_locator(plt.MultipleLocator(1))
+            ax1.yaxis.set_major_locator(plt.MultipleLocator(1))
+            ax1.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax1.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax1.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
         ax1.tick_params(labelsize=14, axis="both", which="both")
         ax1.set_xlim((5,100)), ax1.set_ylim((1e-2,30))#, ax1.set_xlim((5,100))
         ax1.set_xticklabels([])
         ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1, prop={'size': 18})
-        ax1.set_yscale('log'), ax1.set_xscale('log')
+        ax1.set_yscale('log')#, ax1.set_xscale('log')
 
         ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
         if box_index is not None:
             ax2.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
         ax2.set_ylabel('T [K]', size=18)
         ax2.tick_params(labelsize=14, axis="both", which="both")
-        #ax2.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        if include_grid:
+            ax2.xaxis.set_major_locator(plt.MultipleLocator(1))
+            ax2.yaxis.set_major_locator(plt.MultipleLocator(1))
+            ax2.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax2.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax2.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
         ax2.set_xticklabels([])
         ax2.set_xlim((5,100)), ax2.set_ylim((5,130))
-        ax2.set_yscale('log'), ax2.set_xscale('log')
+        ax2.set_yscale('log')#, ax2.set_xscale('log')
 
         if self.plot_stoke:
             ax3.plot(self.r/const.au.cgs.value, self.stoke, c='k')
@@ -611,34 +629,96 @@ class Model_2:
                 ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
             ax3.set_ylabel('Grain Radius [cm]', fontsize=18)
         ax3.tick_params(labelsize=14, axis="both", which="both")
-        #ax3.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        if include_grid:
+            ax3.xaxis.set_major_locator(plt.MultipleLocator(1))
+            ax3.yaxis.set_major_locator(plt.MultipleLocator(1))
+            ax3.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax3.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax3.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
         ax3.set_xlabel('Radius [AU]', size=18)
         ax3.set_xlim((5,100)), ax3.set_ylim((1e-2,0.4))
-        ax3.set_yscale('log'), ax3.set_xscale('log')
+        ax3.set_yscale('log')#, ax3.set_xscale('log')
 
         ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
         if box_index is not None:
             ax4.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
         ax4.set_ylabel('Toomre Q', fontsize=18)
         ax4.tick_params(labelsize=14, axis="both", which="both")
-        #ax4.grid(True, color='k', alpha=0.35, linewidth=1.5, linestyle='--')
+        if include_grid:
+            ax4.xaxis.set_major_locator(plt.MultipleLocator(1))
+            ax4.yaxis.set_major_locator(plt.MultipleLocator(1))
+            ax4.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax4.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+            ax4.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
         ax4.set_xlabel('Radius [AU]', size=18)
         ax4.set_xlim((5,100)), ax4.set_ylim((10,320))
-        ax4.set_yscale('log'), ax4.set_xscale('log')
+        ax4.set_yscale('log')#, ax4.set_xscale('log')
 
         if savefig:
             if path is None:
                 path = str(Path.home())
             if path[-1] != '/':
                 path+='/'
+            _set_style_()
             plt.savefig(path+'Disk_Model.png', dpi=300, bbox_inches='tight')
             print('Figure saved in: {}'.format(path))
-            plt.clf()
+            plt.clf(); plt.style.use('default')
         else:
             plt.show()
 
         return 
 
+def _set_style_():
+    """
+    Function to configure the matplotlib.pyplot style. This function is called before any images are saved,
+    after which the style is reset to the default.
+    """
+
+    plt.rcParams["xtick.color"] = "323034"
+    plt.rcParams["ytick.color"] = "323034"
+    plt.rcParams["text.color"] = "323034"
+    plt.rcParams["lines.markeredgecolor"] = "black"
+    plt.rcParams["patch.facecolor"] = "bc80bd"
+    plt.rcParams["patch.force_edgecolor"] = True
+    plt.rcParams["patch.linewidth"] = 0.8
+    plt.rcParams["scatter.edgecolors"] = "black"
+    plt.rcParams["grid.color"] = "b1afb5"
+    plt.rcParams["axes.titlesize"] = 16
+    plt.rcParams["legend.title_fontsize"] = 12
+    plt.rcParams["xtick.labelsize"] = 16
+    plt.rcParams["ytick.labelsize"] = 16
+    plt.rcParams["font.size"] = 15
+    plt.rcParams["axes.prop_cycle"] = (cycler('color', ['bc80bd' ,'fb8072', 'b3de69','fdb462','fccde5','8dd3c7','ffed6f','bebada','80b1d3', 'ccebc5', 'd9d9d9']))
+    plt.rcParams["mathtext.fontset"] = "stix"
+    plt.rcParams["font.family"] = "STIXGeneral"
+    plt.rcParams["lines.linewidth"] = 2
+    plt.rcParams["lines.markersize"] = 6
+    plt.rcParams["legend.frameon"] = True
+    plt.rcParams["legend.framealpha"] = 0.8
+    plt.rcParams["legend.fontsize"] = 13
+    plt.rcParams["legend.edgecolor"] = "black"
+    plt.rcParams["legend.borderpad"] = 0.2
+    plt.rcParams["legend.columnspacing"] = 1.5
+    plt.rcParams["legend.labelspacing"] = 0.4
+    plt.rcParams["text.usetex"] = False
+    plt.rcParams["axes.labelsize"] = 17
+    plt.rcParams["axes.titlelocation"] = "center"
+    plt.rcParams["axes.formatter.use_mathtext"] = True
+    plt.rcParams["axes.autolimit_mode"] = "round_numbers"
+    plt.rcParams["axes.labelpad"] = 3
+    plt.rcParams["axes.formatter.limits"] = (-4, 4)
+    plt.rcParams["axes.labelcolor"] = "black"
+    plt.rcParams["axes.edgecolor"] = "black"
+    plt.rcParams["axes.linewidth"] = 1
+    plt.rcParams["axes.grid"] = False
+    plt.rcParams["axes.spines.right"] = True
+    plt.rcParams["axes.spines.left"] = True
+    plt.rcParams["axes.spines.top"] = True
+    plt.rcParams["figure.titlesize"] = 18
+    plt.rcParams["figure.autolayout"] = True
+    plt.rcParams["figure.dpi"] = 300
+
+    return
  
 """
 def aspect_ratio(r, M, mmol=2.3):
@@ -662,7 +742,7 @@ import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
 
 M_star, M_disk = const.M_sun.cgs.value, 0.02*const.M_sun.cgs.value
-r, r_c = np.arange(5,100,.1), 300
+r, r_c = np.arange(5,101,.5), 300
 #r = 0.73
 #r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
@@ -676,7 +756,6 @@ T0 = 150
 q, T0 = 1., 600.
 
 model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
-model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
 
 
 model.plot(savefig=True)
