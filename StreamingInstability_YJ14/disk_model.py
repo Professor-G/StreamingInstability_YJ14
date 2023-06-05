@@ -128,7 +128,6 @@ class Model:
 
         self.stoke = np.pi * self.grain_size * self.grain_rho / 2. / self.sigma_g
 
-
     def calc_grain_sizes(self):
         """
         Calculates the grain sizes, to use if stoke's number is constant
@@ -500,9 +499,9 @@ class Model_2:
     def calc_Q(self):
         """
         Toomre Q parameter (dimensionless)
-        
+
         Returns:
-            ToomreQ
+            ToomreQ parameter.
         """
 
         self.Q = self.cs * self.omega / np.pi / const.G.cgs.value / self.sigma_g
@@ -581,7 +580,7 @@ class Model_2:
         Returns:
             AxesPlot 
         """
-
+        plt.style.use('/Users/daniel/Documents/plot_style.txt')
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
         fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
         ((ax1, ax2), (ax3, ax4)) = axes
@@ -590,7 +589,7 @@ class Model_2:
         ax1.plot(self.r/const.au.cgs.value, self.sigma_d, c='k', linestyle='--', label='Dust')#r'$\Sigma_d$')
         if box_index is not None:
             ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
-        ax1.set_ylabel(r'Column Density $[\rm g \ \rm cm^{-2}]$', fontsize=18)
+        ax1.set_ylabel(r'$\Sigma$ $[\rm g \ \rm cm^{-2}]$', fontsize=18)
         if include_grid:
             ax1.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax1.yaxis.set_major_locator(plt.MultipleLocator(1))
@@ -627,7 +626,7 @@ class Model_2:
             ax3.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
             if box_index is not None:
                 ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
-            ax3.set_ylabel('Grain Radius [cm]', fontsize=18)
+            ax3.set_ylabel('a [cm]', fontsize=18)
         ax3.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax3.xaxis.set_major_locator(plt.MultipleLocator(1))
@@ -639,10 +638,10 @@ class Model_2:
         ax3.set_xlim((5,100)), ax3.set_ylim((1e-2,0.4))
         ax3.set_yscale('log')#, ax3.set_xscale('log')
 
-        ax4.plot(self.r/const.au.cgs.value, self.Q, c='k')
+        ax4.plot(self.r/const.au.cgs.value, self.h, c='k')
         if box_index is not None:
-            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.Q[box_index], marker='s', s=100)
-        ax4.set_ylabel('Toomre Q', fontsize=18)
+            ax4.scatter(self.r[box_index]/const.au.cgs.value, self.h[box_index], marker='s', s=100)
+        ax4.set_ylabel('H / r', fontsize=18)
         ax4.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax4.xaxis.set_major_locator(plt.MultipleLocator(1))
@@ -651,8 +650,8 @@ class Model_2:
             ax4.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax4.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
         ax4.set_xlabel('Radius [AU]', size=18)
-        ax4.set_xlim((5,100)), ax4.set_ylim((10,320))
-        ax4.set_yscale('log')#, ax4.set_xscale('log')
+        ax4.set_xlim((5,100)), ax4.set_ylim((0, 0.1)) #ax4.set_ylim((10,320))
+        #ax4.set_yscale('log')#, ax4.set_xscale('log')
 
         if savefig:
             if path is None:
@@ -754,6 +753,7 @@ q = 3/7.
 T0 = 150
 
 q, T0 = 1., 600.
+
 
 model = disk_model.Model_2(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
 
