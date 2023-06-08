@@ -21,7 +21,7 @@ class density_cube:
     allow radiative transfer calculations along the z axis
     of the cube, enabling analysis given a range of conditions. 
     If no opacity information is input (kappa and/or sigma), the opacities 
-    will be estimated using the DSHARP study, see:https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf
+    will be estimated using the DSHARP study, see: https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf
 
     Note:
         The class methods assume that the simulation is a 3D cube and thus symmetrical about each axis. 
