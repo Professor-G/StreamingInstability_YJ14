@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -269,7 +270,12 @@ class density_cube:
         #Source function should be per frequency (1mm wavelength ~ 230GHz)
         if self.include_scattering:
             albedo = self.sigma / (self.kappa + self.sigma)
-            src_fn = albedo * self.blackbody(nu=nu) + (1 - albedo) * self.blackbody(nu=nu)
+            epsilon = 1 - albedo 
+            tau = 0
+            denominator = np.exp(-np.sqrt(3*epsilon)*tau) + np.exp(np.sqrt(3*epsilon)*(tau-tau))
+            numerator = np.exp(-np.sqrt(3*epsilon)*tau)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
+            J = 1 + (denominator/numerator)
+            src_fn = albedo * J + (1 - albedo) * self.blackbody(nu=nu)
         else:
             src_fn = self.blackbody(nu=nu) 
         

@@ -127,7 +127,12 @@ def calc_flux(data, axis, kappa, sigma, T, column_density, nu=230e9):
             mask = (rhod > 0)
             chi = kappa + sigma 
             albedo = sigma / chi 
-            src_fn = albedo * blackbody(nu, T) + (1 - albedo) * blackbody(nu, T)
+            epsilon = 1 - albedo 
+            tau_d = 0
+            denominator = np.exp(-np.sqrt(3*epsilon)*tau_d) + np.exp(np.sqrt(3*epsilon)*(tau_d-tau_d))
+            numerator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
+            J = 1 + (denominator/numerator)
+            src_fn = albedo * J + (1 - albedo) * blackbody(nu, T)
             bb[mask] = src_fn
             flux[j, i] = np.trapz(bb*np.exp(-(tau[j,i]-t)), x=axis, dx=dz)
 
