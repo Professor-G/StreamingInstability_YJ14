@@ -338,7 +338,6 @@ class Model:
         else:
             plt.show()
 
-
 class Model_2:
     """
     Creates the disk model.
@@ -376,6 +375,7 @@ class Model_2:
     Attributes:
         get_params: Calculates all disk parameters
     """
+
     def __init__(self, r, r_c, M_star, M_disk, grain_size=0.1, grain_rho=1,
         T0=150, q=3./7, gamma=1, mmol=2.3, Z=0.01, stoke=None):
 
@@ -562,7 +562,7 @@ class Model_2:
         dlnp/dlnr = dlnSigma/dlnr - 0.5*dlnT/dlnr + dlnOmega/dlnr = -1 -0.5*-3/7 - 3/2 = -2.2857
         
         Returns:
-            beta
+            Beta parameter
         """
 
         self.beta = -self.h * -2.0# -2.2857
@@ -580,6 +580,7 @@ class Model_2:
         Returns:
             AxesPlot 
         """
+        
         plt.style.use('/Users/daniel/Documents/plot_style.txt')
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
         fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)

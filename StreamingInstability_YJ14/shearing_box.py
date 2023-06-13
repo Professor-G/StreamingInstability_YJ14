@@ -272,14 +272,17 @@ class density_cube:
             albedo = self.sigma / (self.kappa + self.sigma)
             epsilon = 1 - albedo
             mu = 1./np.sqrt(3.)
-            tau_d = 2*mu / 3
+            tau_d = (2*mu) / 3
             tau = 0
             #numerator = np.exp(-np.sqrt(3*epsilon)*tau) + np.exp(np.sqrt(3*epsilon)*(tau-tau_d))
             #denominator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
             #J = self.blackbody(nu=nu)*(1 + (numerator/denominator))
-            numerator = 2*np.sqrt(epsilon) * (np.exp(-np.sqrt(3*epsilon)*tau_d) - 1)
-            denominator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
-            J = self.blackbody(nu=nu) * (numerator / denominator)
+            #numerator = 2*np.sqrt(epsilon) * (np.exp(-np.sqrt(3*epsilon)*tau_d) - 1)
+            #denominator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
+            #J = self.blackbody(nu=nu) * (numerator / denominator)
+            numerator = np.exp(-np.sqrt(3*epsilon)*tau) + np.exp(np.sqrt(3*epsilon)*(tau-tau_d))
+            denominator = (np.exp(-np.sqrt(3*epsilon)*tau_d)*(1-np.sqrt(epsilon))) + (np.sqrt(epsilon)+1)
+            J = self.blackbody(nu=nu)*(1 - (numerator/denominator))
             src_fn = albedo * J + (1 - albedo) * self.blackbody(nu=nu)
         else:
             src_fn = self.blackbody(nu=nu)
