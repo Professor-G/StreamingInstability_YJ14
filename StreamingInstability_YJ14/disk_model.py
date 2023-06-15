@@ -565,7 +565,7 @@ class Model_2:
             Beta parameter
         """
 
-        self.beta = -self.h * -2.0# -2.2857
+        self.beta = -self.h * (-1.0 - (0.5*-q) - 1.5) #-2.0# -2.2857
 
     def plot(self, savefig=False, include_grid=False, path=None, box_index=None):
         """
