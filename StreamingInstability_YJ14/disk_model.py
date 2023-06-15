@@ -580,34 +580,36 @@ class Model_2:
         Returns:
             AxesPlot 
         """
-        
-        plt.style.use('/Users/daniel/Documents/plot_style.txt')
+
+        _set_style_()
+
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
-        fig.suptitle("Protoplanetary Disk Model", fontsize=24, x=.5, y=.97)
+        fig.suptitle("Protoplanetary Disk Model", x=.5, y=.97)
+
         ((ax1, ax2), (ax3, ax4)) = axes
 
         ax1.plot(self.r/const.au.cgs.value, self.sigma_g, c='k', label='Gas')#r'$\Sigma_g$')
         ax1.plot(self.r/const.au.cgs.value, self.sigma_d, c='k', linestyle='--', label='Dust')#r'$\Sigma_d$')
         if box_index is not None:
             ax1.scatter(self.r[box_index]/const.au.cgs.value, self.sigma_g[box_index], marker='s', s=100)
-        ax1.set_ylabel(r'$\Sigma$ $[\rm g \ \rm cm^{-2}]$', fontsize=18)
+        ax1.set_ylabel(r'$\Sigma$ $[\rm g \ \rm cm^{-2}]$')
         if include_grid:
             ax1.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax1.yaxis.set_major_locator(plt.MultipleLocator(1))
             ax1.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax1.tick_params(labelsize=14, axis="both", which="both")
+        #ax1.tick_params(labelsize=14, axis="both", which="both")
         ax1.set_xlim((5,100)), ax1.set_ylim((1e-2,30))#, ax1.set_xlim((5,100))
         ax1.set_xticklabels([])
-        ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1, prop={'size': 18})
+        ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)#, prop={'size': 18})
         ax1.set_yscale('log')#, ax1.set_xscale('log')
 
         ax2.plot(self.r/const.au.cgs.value, self.T, c='k')
         if box_index is not None:
             ax2.scatter(self.r[box_index]/const.au.cgs.value, self.T[box_index], marker='s', s=100)
-        ax2.set_ylabel('T [K]', size=18)
-        ax2.tick_params(labelsize=14, axis="both", which="both")
+        ax2.set_ylabel('T [K]')
+        #ax2.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax2.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax2.yaxis.set_major_locator(plt.MultipleLocator(1))
@@ -622,49 +624,51 @@ class Model_2:
             ax3.plot(self.r/const.au.cgs.value, self.stoke, c='k')
             if box_index is not None:
                 ax3.scatter(self.r[box_index]/const.au.cgs.value, self.stoke[box_index], marker='s', s=100)
-            ax3.set_ylabel('Stoke', fontsize=18)
+            ax3.set_ylabel(r'$\tau_s$')
         else:
-            ax3.plot(self.r/const.au.cgs.value, self.grain_size, c='k')
+            ax3.plot(self.r/const.au.cgs.value, self.grain_size*10, c='k') #Converting from cm to mm
             if box_index is not None:
-                ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index], marker='s', s=100)
-            ax3.set_ylabel('a [cm]', fontsize=18)
-        ax3.tick_params(labelsize=14, axis="both", which="both")
+                ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index]*10, marker='s', s=100)
+            ax3.set_ylabel('a [mm]')
+       # ax3.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax3.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax3.yaxis.set_major_locator(plt.MultipleLocator(1))
             ax3.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax3.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax3.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax3.set_xlabel('Radius [AU]', size=18)
-        ax3.set_xlim((5,100)), ax3.set_ylim((1e-2,0.4))
+        ax3.set_xlabel('Radius [AU]')
+        ax3.set_xlim((5,100)), ax3.set_ylim((1e-2*10,0.4*10))
+        xticks = [5, 20, 40, 60, 80, 100]
+        ax3.set_xticks(xticks)
         ax3.set_yscale('log')#, ax3.set_xscale('log')
 
         ax4.plot(self.r/const.au.cgs.value, self.h, c='k')
         if box_index is not None:
             ax4.scatter(self.r[box_index]/const.au.cgs.value, self.h[box_index], marker='s', s=100)
-        ax4.set_ylabel('H / r', fontsize=18)
-        ax4.tick_params(labelsize=14, axis="both", which="both")
+        ax4.set_ylabel('H / r')
+        #ax4.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax4.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax4.yaxis.set_major_locator(plt.MultipleLocator(1))
             ax4.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax4.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax4.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax4.set_xlabel('Radius [AU]', size=18)
-        ax4.set_xlim((5,100)), ax4.set_ylim((0, 0.1)) #ax4.set_ylim((10,320))
+        ax4.set_xlabel('Radius [AU]')
+        ax4.set_xlim((5,100)), ax4.set_ylim((0.02, 0.08)) #ax4.set_ylim((10,320))
+        xticks = [5, 20, 40, 60, 80, 100]
+        ax4.set_xticks(xticks)
+        #ax4.set_yticks([0.1, 0.06, 0.02])
         #ax4.set_yscale('log')#, ax4.set_xscale('log')
 
         if savefig:
-            if path is None:
-                path = str(Path.home())
-            if path[-1] != '/':
-                path+='/'
-            _set_style_()
+            path = str(Path.home()) if path is None else path
+            path = path+'/' if path[-1] != '/' else path 
             plt.savefig(path+'Disk_Model.png', dpi=300, bbox_inches='tight')
             print('Figure saved in: {}'.format(path))
-            plt.clf(); plt.style.use('default')
+            plt.clf()
         else:
-            plt.show()
+            plt.style.use('default'); plt.show()
 
         return 
 
@@ -742,7 +746,7 @@ import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
 
 M_star, M_disk = const.M_sun.cgs.value, 0.02*const.M_sun.cgs.value
-r, r_c = np.arange(5,101,1), 300
+r, r_c = np.arange(5,100.25,0.25), 300
 #r = 0.73
 #r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
