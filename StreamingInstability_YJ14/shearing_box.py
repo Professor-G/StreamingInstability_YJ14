@@ -48,8 +48,9 @@ class density_cube:
             with the stokes number.
         eps_dtog (float): Dust to gas ratio, defaults to 0.03. Only used
             to calculate the mass of protoplanets.
-        npar (int): Number of particles in the simulation, defaults
-            to one million. Only used to calculate the mass of protoplanets.
+        npar (int): pdim=pc.read_pdim(datadir=datadir); npar = pdim.npar
+            Number of particles in the simulation, defaults to one million. 
+            Only used to calculate the mass of protoplanets.
         aps (ndarray): pvar.aps, only used to calculate the mass of protoplanets.
         rhopswarm (ndarray): pvar.rhopswarm, only used to calculate the mass of protoplanets.
         include_scattering (bool): If kappa is set to None, the DSHARP opacities will be applied. If 
@@ -372,6 +373,7 @@ class density_cube:
                     self.kappa[grain], self.sigma[grain] = k_abs_fit(self.grain_size[grain]), k_sca_fit(self.grain_size[grain])
                 else:
                     self.kappa = k_abs_fit(self.grain_size)
+                    
         return 
 
     def get_proto_mass(self):

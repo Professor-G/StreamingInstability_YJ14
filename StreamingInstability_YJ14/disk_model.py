@@ -158,7 +158,7 @@ class Model:
         Calculates the grain sizes, to use if stoke's number is constant
         
         Returns:
-            Grain sizes, a, two times the grain radius.
+            Grain sizes, a
         """
 
         self.grain_size = 2 * self.stoke * self.sigma_g / np.pi / self.grain_rho
@@ -168,7 +168,7 @@ class Model:
         Keplerian angular velocity.
         """
 
-        self.omega = 2 * np.pi # np.sqrt(const.G.cgs.value*self.M_star/self.r**3)
+        self.omega = np.sqrt(const.G.cgs.value*self.M_star/self.r**3)
 
     def calc_Q(self):
         """
@@ -209,8 +209,7 @@ class Model:
         """
 
         molecule_mass = self.mmol * const.m_p.cgs.value #Mass of hydrogen molecule
-
-        self.cs = 2 * np.pi #np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
+        self.cs = np.sqrt(self.gamma * const.k_B.cgs.value * self.T / molecule_mass)
 
     def calc_H(self):
         """
@@ -239,7 +238,7 @@ class Model:
             Beta parameter
         """
 
-        self.beta = -self.h * (-1.0 - (0.5*-self.q) - 1.5) #-2.0# -2.2857
+        self.beta = self.h * (-1.0 - (0.5*-self.q) - 1.5) #-2.0# -2.2857
 
     def plot_vertical(self, savefig=False, include_grid=False, path=None, box_index=None):
         """
@@ -255,13 +254,10 @@ class Model:
             AxesPlot 
         """
 
-        _set_style_()
+        _set_style_() if savefig else plt.style.use('default')
 
-        #fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 16), sharex=True)
         fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(5, 9), sharex=True)
-        #fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(5, 12), sharex=True)
-
-        fig.suptitle("Protoplanetary Disk Model", x=0.57, y=0.965)
+        fig.suptitle("Protoplanetary Disk Model", x=0.565, y=0.965)
 
         ax1, ax2, ax3, ax4 = axes
 
@@ -276,7 +272,7 @@ class Model:
             ax1.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax1.set_xlim((5, 100))#; ax1.set_ylim((1e-2, 30))
+        ax1.set_xlim((5, 100)); ax1.set_ylim((1e-2, 30))
         ax1.set_xticklabels([])
         ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)
         ax1.set_yscale('log')
@@ -291,7 +287,7 @@ class Model:
             ax2.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax2.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax2.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax2.set_xlim((5, 100))#; ax2.set_ylim((5, 130))
+        ax2.set_xlim((5, 100)); ax2.set_ylim((5, 250))
         ax2.set_xticklabels([])
         ax2.set_yscale('log')
 
@@ -319,21 +315,21 @@ class Model:
                 ax3.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
                 ax3.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
                 ax3.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-            ax3.set_xlim((5, 100))#; ax3.set_ylim((1e-2*10, 0.4*10))           
+            ax3.set_xlim((5, 100)); ax3.set_ylim((0.5, 30))           
             ax3.set_yscale('log')
 
         ax4.plot(self.r/const.au.cgs.value, self.h, c='k')
         if box_index is not None:
             ax4.scatter(self.r[box_index]/const.au.cgs.value, self.h[box_index], marker='s', s=100)
         ax4.set_ylabel('H / r')
-        ax4.set_xlabel('Radius [AU]')
+        ax4.set_xlabel('Radius [au]')
         if include_grid:
             ax4.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax4.yaxis.set_major_locator(plt.MultipleLocator(1))
             ax4.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax4.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax4.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        ax4.set_xlim((5, 100))#; ax4.set_ylim((0.02, 0.08))
+        ax4.set_xlim((5, 100)); ax4.set_ylim((0.02, 0.08))
         xticks = [5, 20, 40, 60, 80, 100]
         ax4.set_xticks(xticks)
         ax4.set_xticklabels([5, 20, 40, 60, 80, 100])
@@ -344,7 +340,6 @@ class Model:
             print('Figure saved in: {}'.format(path))
             plt.clf()
         else:
-            plt.style.use('default')
             plt.tight_layout()
             plt.show()
 
@@ -364,7 +359,7 @@ class Model:
             AxesPlot 
         """
 
-        _set_style_()
+        _set_style_() if savefig else plt.style.use('default')
 
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12,8))
         fig.suptitle("Protoplanetary Disk Model", x=.5, y=.97)
@@ -382,7 +377,6 @@ class Model:
             ax1.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
             ax1.grid(True, which='both', color='k', alpha=0.25, linewidth=1.5, linestyle='--')
-        #ax1.tick_params(labelsize=14, axis="both", which="both")
         ax1.set_xlim((5,100))#, ax1.set_ylim((1e-2,30))
         ax1.set_xticklabels([])
         ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)#, prop={'size': 18})
@@ -412,7 +406,6 @@ class Model:
             if box_index is not None:
                 ax3.scatter(self.r[box_index]/const.au.cgs.value, self.grain_size[box_index]*10, marker='s', s=100)
             ax3.set_ylabel('a [mm]')
-       # ax3.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax3.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax3.yaxis.set_major_locator(plt.MultipleLocator(1))
@@ -429,7 +422,6 @@ class Model:
         if box_index is not None:
             ax4.scatter(self.r[box_index]/const.au.cgs.value, self.h[box_index], marker='s', s=100)
         ax4.set_ylabel('H / r')
-        #ax4.tick_params(labelsize=14, axis="both", which="both")
         if include_grid:
             ax4.xaxis.set_major_locator(plt.MultipleLocator(1))
             ax4.yaxis.set_major_locator(plt.MultipleLocator(1))
@@ -448,7 +440,8 @@ class Model:
             print('Figure saved in: {}'.format(path))
             plt.clf()
         else:
-            plt.style.use('default'); plt.show()
+            plt.tight_layout()
+            plt.show()
 
         return 
 
@@ -531,7 +524,7 @@ r, r_c = np.arange(5,100.25,0.25), 300
 #r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
-grain_rho = 1.675
+grain_rho = 2.0
 stoke = 0.314 #0.05
 Z = 0.02 
 q = 3/7.
@@ -543,7 +536,7 @@ q, T0 = 1., 600.
 model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
 
 
-model.plot(savefig=True)
+model.plot_vertical(savefig=True)
 
 ######
 
@@ -562,7 +555,7 @@ for radius in [10, 30, 100]:
     r, r_c = radius*const.au.cgs.value, 300*const.au.cgs.value
     j=0
     for grain_size in [1, 0.3, 0.1, 0.03]:
-        #model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=grain_size, Z=Z, stoke=None, q=q, T0=T0)
+        model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=grain_size, Z=Z, stoke=None, q=q, T0=T0)
         stoke[j,i] = model.stoke
         sigma_g[j,i] = model.sigma_g
         beta[j,i] = model.beta
