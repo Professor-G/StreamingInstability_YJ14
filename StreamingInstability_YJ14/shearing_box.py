@@ -275,12 +275,6 @@ class density_cube:
             mu = 1./np.sqrt(3.)
             tau_d = (2*mu) / 3
             tau = 0
-            #numerator = np.exp(-np.sqrt(3*epsilon)*tau) + np.exp(np.sqrt(3*epsilon)*(tau-tau_d))
-            #denominator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
-            #J = self.blackbody(nu=nu)*(1 + (numerator/denominator))
-            #numerator = 2*np.sqrt(epsilon) * (np.exp(-np.sqrt(3*epsilon)*tau_d) - 1)
-            #denominator = np.exp(-np.sqrt(3*epsilon)*tau_d)*(np.sqrt(epsilon) - 1) - (np.sqrt(epsilon) + 1)
-            #J = self.blackbody(nu=nu) * (numerator / denominator)
             numerator = np.exp(-np.sqrt(3*epsilon)*tau) + np.exp(np.sqrt(3*epsilon)*(tau-tau_d))
             denominator = (np.exp(-np.sqrt(3*epsilon)*tau_d)*(1-np.sqrt(epsilon))) + (np.sqrt(epsilon)+1)
             J = self.blackbody(nu=nu)*(1 - (numerator/denominator))
@@ -367,13 +361,49 @@ class density_cube:
             if self.grain_size.min() < a.min():
                 raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
 
-            self.kappa = np.zeros(len(self.grain_size))
-            for grain in self.grain_size:
+            self.kappa, self.sigma = np.zeros(len(self.grain_size)), np.zeros(len(self.grain_size))
+
+            for grain in range(len(self.grain_size)):
                 if self.include_scattering:
                     self.kappa[grain], self.sigma[grain] = k_abs_fit(self.grain_size[grain]), k_sca_fit(self.grain_size[grain])
                 else:
-                    self.kappa = k_abs_fit(self.grain_size)
-                    
+                    self.kappa[grain] = k_abs_fit(self.grain_size[grain])
+            
+            ### Formula for the effective dust opacity coefficients taken from Miyake & Nakagawa (1993) ###
+
+            def n(a, n0=1, p=-2.5):
+                """
+                Power law distribution of 2.5 (Safronov 1969) -- the same one we used to extract the DSHARP opacities
+                n0 is the normalization constant, setting to 1
+                """
+                return n0 * a**p
+
+            integral_sum_kappa, integral_sum_sigma = 0.0, 0.0
+
+            for grain in range(len(self.grain_size)):
+                #Grain size and absorption coefficient 
+                a, kappa = self.grain_size[grain], self.kappa[grain]
+                #Calculate the integrand and add 
+                integrand_k = n(a) * a**3 * kappa
+                integral_sum_kappa += integrand_k
+
+                #Scattering coefficient
+                if self.include_scattering:
+                    sigma = self.sigma[grain]
+                    integrand_sigma = n(a) * a**3 * sigma
+                    integral_sum_sigma += integrand_sigma
+
+            #Calculate the denominator of the effective opacity
+            denominator = sum(n(a) * a**3 for a in self.grain_size)
+
+            #The effective opacities
+            k_effective = integral_sum_kappa / denominator
+            sigma_effective = integral_sum_sigma / denominator if self.include_scattering else None
+
+            #print('kappa_1', self.kappa); print('sigma_1', self.sigma)
+            self.kappa, self.sigma = k_effective, sigma_effective
+            #print('kappa_2', self.kappa); print('sigma_2', self.sigma)
+
         return 
 
     def get_proto_mass(self):

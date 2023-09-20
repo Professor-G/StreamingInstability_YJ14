@@ -231,7 +231,7 @@ class Model:
     def calc_beta(self):
         """
         Calculates the beta parameter
-        beta = -h * dlnp/dlnr
+        beta = h * dlnp/dlnr
         dlnp/dlnr = dlnSigma/dlnr - 0.5*dlnT/dlnr + dlnOmega/dlnr = -1 -0.5*-3/7 - 3/2 = -2.2857
         
         Returns:
@@ -446,11 +446,8 @@ class Model:
         return 
 
 def _set_style_():
+    """Function to configure the matplotlib.pyplot style. This function is called before any images are saved, after which the style is reset to the default.
     """
-    Function to configure the matplotlib.pyplot style. This function is called before any images are saved,
-    after which the style is reset to the default.
-    """
-
     plt.rcParams["xtick.color"] = "323034"
     plt.rcParams["ytick.color"] = "323034"
     plt.rcParams["text.color"] = "323034"
@@ -494,7 +491,7 @@ def _set_style_():
     plt.rcParams["figure.titlesize"] = 18
     plt.rcParams["figure.autolayout"] = True
     plt.rcParams["figure.dpi"] = 300
-
+    #
     return
  
 """
@@ -509,14 +506,15 @@ def sound_speed(r, gamma=1.4, mmol=2.3):
     return np.sqrt(T(r)*cp*(gamma-1))
 """
 
-"""
 
+"""
 #Disk model plot
 
 import numpy as  np 
 import matplotlib.pyplot as plt  
 import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
+import astropy.constants as const
 
 M_star, M_disk = const.M_sun.cgs.value, 0.02*const.M_sun.cgs.value
 r, r_c = np.arange(5,100.25,0.25), 300
@@ -524,23 +522,126 @@ r, r_c = np.arange(5,100.25,0.25), 300
 #r = 7.5
 r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value
 
-grain_rho = 2.0
+grain_rho = 2.0#1.675
 stoke = 0.314 #0.05
 Z = 0.02 
-q = 3/7.
-T0 = 150
+#q = 3/7.
+#T0 = 150
 
 q, T0 = 1., 600.
 
 
-model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
+model_1 = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
+
+grain_rho = 2.0#1.675
+Z = 0.03
+q = 3/7.
+T0 = 150
+
+model_2a = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=1, Z=Z, stoke=None, q=q, T0=T0)
+model_2b = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=0.3, Z=Z, stoke=None, q=q, T0=T0)
+model_2c = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=0.1, Z=Z, stoke=None, q=q, T0=T0)
+model_2d = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=0.03, Z=Z, stoke=None, q=q, T0=T0)
+
+_set_style_() 
+
+fig, axes = plt.subplots(nrows=5, ncols=2, figsize=(14, 12.5), sharex=True)
+fig.suptitle("Protoplanetary Disk Models", x=0.51, y=0.935)
+
+(ax1, ax5), (ax2, ax6), (ax3, ax7), (ax9, ax10), (ax4, ax8) = axes
+
+ax1.plot(model_1.r/const.au.cgs.value, model_1.sigma_g, c='k', label='Gas')
+ax1.plot(model_1.r/const.au.cgs.value, model_1.sigma_d, c='k', linestyle='--', label='Dust')
+ax1.set_ylabel(r'$\Sigma$ $[\rm g \ \rm cm^{-2}]$')
+ax1.set_xlim((5, 100)); ax1.set_ylim((1e-2, 30))
+ax1.set_xticklabels([])
+ax1.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)
+ax1.set_yscale('log')
+ax1.set_title('Without Self-Gravity')
+
+ax2.plot(model_1.r/const.au.cgs.value, model_1.T, c='k')
+ax2.set_ylabel('T [K]')
+ax2.set_xlim((5, 100)); ax2.set_ylim((5, 120))
+ax2.set_xticklabels([])
+ax2.set_yscale('log')
 
 
-model.plot_vertical(savefig=True)
+ax3.plot(model_1.r/const.au.cgs.value, model_1.grain_size*10, c='k', label='St = 0.314')
+ax3.set_ylabel('a [mm]')
+ax3.set_xlim((5, 100)); ax3.set_ylim((0.5, 30))        
+ax3.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)   
+ax3.set_yscale('log')
+
+ax4.plot(model_1.r/const.au.cgs.value, model_1.h, c='k')
+ax4.set_ylabel('H / r')
+ax4.set_xlabel('Radius [au]')
+ax4.set_xlim((5, 100)); ax4.set_ylim((0.02, 0.08))
+xticks = [5, 20, 40, 60, 80, 100]
+ax4.set_xticks(xticks)
+ax4.set_xticklabels([5, 20, 40, 60, 80, 100])
+
+
+ax5.plot(model_2a.r/const.au.cgs.value, model_2a.sigma_g, c='k', label='Gas')
+ax5.plot(model_2a.r/const.au.cgs.value, model_2a.sigma_d, c='k', linestyle='--', label='Dust')
+ax5.set_ylabel(r'$\Sigma$ $[\rm g \ \rm cm^{-2}]$')
+ax5.set_xlim((5, 100)); ax5.set_ylim((1e-2, 30))
+ax5.set_xticklabels([])
+ax5.legend(frameon=False, handlelength=1, loc='upper right', ncol=1)
+ax5.set_yscale('log')
+ax5.set_title('With Self-Gravity')
+
+ax6.plot(model_2a.r/const.au.cgs.value, model_2a.T, c='k')
+ax6.set_ylabel('T [K]')
+ax6.set_xlim((5, 100)); ax6.set_ylim((20, 80))
+ax6.set_xticklabels([])
+#ax6.set_yscale('log')
+
+#line_styles = ['-', '--', '-.', ':', (0, (5, 1)), (0, (3, 1, 1, 1)), (0, (1, 1)), (0, (5, 5))] 
+#colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#bcbd22', '#17becf']
+
+#ax7.plot(model_2a.r/const.au.cgs.value, model_2a.Q, c='k', linestyle='-', label='a = 1 cm')
+#ax7.set_ylabel('Q')
+#ax7.set_xlim((5, 100)); ax7.set_ylim((30, 250))    
+
+
+
+ax7.plot(model_2a.r/const.au.cgs.value, model_2a.stoke, c='k', linestyle='-', label='a = 1 cm')
+ax7.plot(model_2c.r/const.au.cgs.value, model_2c.stoke, c='k', linestyle='-.', label='a = 1 mm')
+ax7.plot(model_2b.r/const.au.cgs.value, model_2b.stoke, c='k', linestyle='--', label='a = 3 mm')
+ax7.plot(model_2d.r/const.au.cgs.value, model_2d.stoke, c='k', linestyle=':', label='a = 0.3 mm')
+ax7.legend(frameon=False, handlelength=1, loc='lower right', ncol=2)
+ax7.set_ylabel('St')
+ax7.set_xlim((5, 100)); ax7.set_ylim((0.001, 5))           
+ax7.set_yscale('log')
+
+ax8.plot(model_2a.r/const.au.cgs.value, model_2a.h, c='k')
+ax8.set_ylabel('H / r')
+ax8.set_xlabel('Radius [au]')
+ax8.set_xlim((5, 100))#; ax4.set_ylim((0.02, 0.08))
+xticks = [5, 20, 40, 60, 80, 100]
+ax8.set_xticks(xticks)
+ax8.set_xticklabels([5, 20, 40, 60, 80, 100])
+
+
+ax9.plot(model_1.r/const.au.cgs.value, model_1.Q, c='k', linestyle='-')
+ax9.set_ylabel('Q')
+ax9.set_yscale('log')
+ax9.set_xlim((5, 100)); ax9.set_ylim((20, 300))    
+
+ax10.plot(model_2a.r/const.au.cgs.value, model_2a.Q, c='k', linestyle='-')
+ax10.set_ylabel('Q')
+ax10.set_yscale('log')
+ax10.set_xlim((5, 100)); ax10.set_ylim((20, 300))    
+
+
+plt.savefig('NewDisk_Model2.png', dpi=300, bbox_inches='tight')
+    
+
+
 
 ######
 
-grain_rho = 1.675
+grain_rho = 2.0#1.675
 Z = 0.03
 q = 3/7.
 T0 = 150
@@ -569,6 +670,15 @@ for radius in [10, 30, 100]:
 
 
 model = disk_model.Model(r, b=1.5, c=0.5, grain_size=grain_size, grain_rho=grain_rho, Z=Z, stoke=None):
+
+
+######
+change the disk model figure to include the stokes numbers
+include Q and maybe G as a separate plot 
+need to disentangle the contribution of optically thick regions and planetesimals to the mass underestimation
+would be good to have 4 separate simulations for one location (r=10 au)
+
+
 
 """
 
