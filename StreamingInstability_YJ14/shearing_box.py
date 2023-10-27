@@ -310,6 +310,8 @@ class density_cube:
                 t = self.calc_t(rhod, kappa, sigma)
                 mask = (rhod == 0)
                 bb[mask] = 0
+                kappa[mask] = 0
+                sigma[mask] = 0
                 self.flux[j, i] = np.trapz(bb*np.exp(-(self.tau[j, i] - t)), x=self.axis, dx=self.dx)
     
         return 
@@ -360,7 +362,14 @@ class density_cube:
         if isinstance(self.grain_size, np.ndarray) is False:
             # If T is constant, this is what you get from integrating the RT equation with constant source fn and I(0)=0
             flux_approx = self.src_fn * (1 - np.exp(-self.tau))
-            sigma_dust = np.mean(flux_approx) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(flux_approx) / (self.src_fn * self.kappa)
+            self.effective_kappa, self.effective_sigma = np.zeros((256, 256, 256)), np.zeros((256, 256, 256))
+            self.effective_kappa[::] = self.kappa 
+            self.effective_sigma[::] = self.sigma
+            source_fn = np.zeros((256, 256, 256))
+            source_fn[::] = self.src_fn
+            self.src_fn = source_fn
+            self.calc_flux()
+            sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * (self.kappa + self.sigma)) if self.include_scattering else np.mean(flux_approx) / (self.src_fn * self.kappa)
         else:
             # In this case T is still constant but the source function is now a function of position
             self.calc_flux()
@@ -437,7 +446,7 @@ class density_cube:
         Calculates the mass of the protoplanets
 
         Returns:
-            Mass of the forming protoplanets
+            Mass of the forming protoplanets, if no planetesimals the get_proto_mass attribute is zero 
         """
 
         mp_code = self.eps_dtog * self.mass / self.npar
@@ -450,7 +459,12 @@ class density_cube:
         ttmp = tmp + np.log10(mp_code)
         mass = 10**ttmp
 
-        self.proto_mass = np.sort(mass) 
+        self.proto_mass = np.sort(mass)
+        
+        try:
+            self.proto_mass.max()
+        except ValueError:
+            self.proto_mass = 0
 
         return
 
@@ -555,8 +569,13 @@ def load_opacity_values(q=None):
         file = pkg_resources.resource_filename(resource_package, resource_path)
         values = np.loadtxt(file)
         a, k_abs, k_sca = values[:,0], values[:,3], values[:,4]
+    elif q == 4.0:
+        resource_path = '/'.join(('data', 'a_max_opacities.txt'))
+        file = pkg_resources.resource_filename(resource_package, resource_path)
+        values = np.loadtxt(file)
+        a, k_abs, k_sca = values[:,0], values[:,5], values[:,6]
     else:
-        raise ValueError('Unsupported grain size distribution index, options are q=None for single grain size opacities or q=2.5 or 3.5.')
+        raise ValueError('Unsupported grain size distribution index, options are q=None for single grain size opacities or q=2.5, 3.5, or 4.0.')
 
     #order = np.array(a).argsort()
     #a, k_abs, k_sca = a[order], k_abs[order], k_sca[order]
