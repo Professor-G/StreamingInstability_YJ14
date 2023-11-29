@@ -6,14 +6,13 @@ Created on Thu May 26 11:01:11 2021
 @author: daniel
 """
 import warnings
-import matplotlib.pyplot as plt
-import numpy as np
-import astropy.constants as const
 warnings.filterwarnings("ignore")
+from scipy. import interpolate, stats
+import astropy.constants as const
 from pathlib import Path
 import pkg_resources
-from scipy.interpolate import interp1d
-from scipy import stats  
+import numpy as np
+
 
 class density_cube:
     """
@@ -21,7 +20,7 @@ class density_cube:
     allow radiative transfer calculations along the z axis
     of the cube, enabling analysis given a range of conditions. 
     If no opacity information is input (kappa and/or sigma), the opacities 
-    will be estimated using the DSHARP study, see: https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf
+    will be estimated using coefficients from the DSHARP project, see: https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf
 
     Note:
         The class methods assume that the simulation is a 3D cube and thus symmetrical about each axis. 
@@ -90,24 +89,14 @@ class density_cube:
 
         if self.include_scattering:
             if self.kappa is not None:
-                if self.sigma is None:
-                    raise ValueError('The include_scattering paramater has been enabled but no scattering coefficient (sigma) was input!')
+                if self.sigma is None: raise ValueError('The include_scattering paramater has been enabled but no scattering coefficient (sigma) was input!')
             if self.sigma is not None:
-                if self.kappa is None:
-                    raise ValueError('The include_scattering paramater has been enabled but no absorption coefficient (kappa) was input!')
-
-        try:
-            __ = len(stoke)
-            if __ != len(rho_grain):
-                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain parameter must be of the same size!")
-        except:
-            pass
+                if self.kappa is None: raise ValueError('The include_scattering paramater has been enabled but no absorption coefficient (kappa) was input!')
 
         if self.data is None:
             print('No data input, loading density cube from YJ14, orbit 100...')
             self.data, self.axis = load_cube()
 
-        self.unit_sigma = None
         self.tau = None 
         self.flux = None
         self.mass = None
@@ -117,70 +106,72 @@ class density_cube:
         self.grain_size = None 
         self.proto_mass = None 
 
-        #self.configure()
-
-    def configure(self, nu=230e9):
+    def configure(self, frequency=3e11):
         """
         Initializing parameters and creates flux, mass excess, and filling factor 
         attributes. If sigma, H, or dx/dy/dz attributes are updated, re-run this method 
         to re-configure the settings.
 
         Args:
-            nu (float): Frequency at which to calculate the observed flux and thus mass excess.
+            frequency (float): Wavelength requency at which to calculate the observed flux and thus mass excess.
+                Input must be Hz, defaults to 3e11 corresponding to the 1mm frequency.
         """
 
-        self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1]) * self.H 
-        self.dz = self.dy = self.dx = np.diff(self.axis)[0]
-        self.Nz = self.Ny = self.Nx = len(self.axis)
-        self.area = self.Lx * self.Ly
+        # Dimensions of the box
+        self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1]) * self.H # Box length (assumes a cube!)
+        self.dz = self.dy = self.dx = np.diff(self.axis)[0] # Cell length
+        self.Nz = self.Ny = self.Nx = len(self.axis) # No. of cells
+        self.area = self.Lx * self.Ly # Box area (code units)
 
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi)
+        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
 
-        #Code units
-        box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) 
+        # Mass in code units
+        box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) # init_var is the 0th snapshot and is used for simulations with self-gravity (the initial mass)
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
+
+        # Convert the mass to cgs units
         unit_mass = self.unit_sigma * self.H**2
         self.mass = box_mass_codeunits * unit_mass 
 
+        # If opacity coefficients are not input calculate the grain sizes and extract the corresponding DSHARP opacities
         if self.kappa is None:
             try:
                 self.calc_grain_size(); self.extract_opacity()
             except:
                 raise ValueError('Cannot calculate kappa -- to calculate the appropriate grain size input the stoke and rho_grain parameters.')
 
-        self.calc_mass_excess(nu=nu); self.calc_filling_factor()
+        # Compute the mass underestimation 
+        self.calc_mass_excess(frequency=frequency)
 
-        if self.aps is not None and self.rhopswarm is not None:
-            self.get_proto_mass()
+        # Compute the mass of the protoplanets if both the aps and rhopswarm arrays are input
+        if self.aps is not None and self.rhopswarm is not None: self.get_proto_mass()
 
-    def blackbody(self, nu=230e9):
+        return
+
+    def blackbody(self, frequency=3e11):
         """
-        Planck's law, which describes the black body radiation 
-        of a source in thermal equilibrium at a given temperature T.
+        Planck's law describing the black body radiation of a source in thermal equilibrium at a given temperature, T.
 
-        Args:
-            nu (float): Wavelength frequency. Defaults to 230e9 Hz (1 mm)
+        frequency (float): Fequency of the wavelength at which to calculate the observed flux and thus the mass excess.
+            Input must be in units of Hz. Defaults to 3e11 Hz corresponding to the 1 mm wavelength.
 
         Returns:
             Spectral radiance of the source. 
         """
 
-        bb = 2*const.h.cgs.value*nu**3 / (const.c.cgs.value**2*(np.exp(const.h.cgs.value*nu / (const.k_B.cgs.value*self.T)) - 1))
-
-        return bb
+        return 2 * const.h.cgs.value * frequency**3 / (const.c.cgs.value**2 * (np.exp(const.h.cgs.value * frequency / (const.k_B.cgs.value * self.T)) - 1))
 
     def calc_tau(self):
         """
         Integrates density along the z-axis to compute the optical depth at every single column.
-        Computes int_0^Lz k_eff * rhod * dz
         
         Returns:
-            2D array containing the optical depth values.
+            2D array containing the optical depth values at each (x,y) position.
         """
 
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi)
+        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
   
-        self.tau = np.zeros([self.Ny, self.Nx]) 
+        self.tau = np.zeros((self.Ny, self.Nx)) # To store the optical depth at each (x,y) column
         
         # If polydisperse, create a 'num_per_species' 4D array to store the number of dust grains in each 3D cell on a per-species basis
         if isinstance(self.grain_size, np.ndarray):
@@ -188,12 +179,13 @@ class density_cube:
             species = np.ceil(self.ipars / (self.npar / len(self.grain_size))).astype(int) 
             num_species = len(np.unique(species))
             print(f"Detected {num_species} grain sizes, applying weighted opacity calculation...")
+
             #To store the number of each species located at each cell, shape (num_of_species, len(Nz), len(Ny), len(Nx))
             self.num_per_species = np.zeros((num_species, self.Nz, self.Ny, self.Nx), dtype=int)
 
             #To store the weighted opacity coefficients at each cell
-            self.effective_kappa = np.zeros([self.Nz, self.Ny, self.Nx]) 
-            self.effective_sigma = np.zeros([self.Nz, self.Ny, self.Nx]) 
+            self.effective_kappa = np.zeros((self.Nz, self.Ny, self.Nx))
+            self.effective_sigma = np.zeros((self.Nz, self.Ny, self.Nx))
             
             ###
             ### Compute the number of each species at each cell ###
@@ -211,10 +203,10 @@ class density_cube:
             for species_type in range(1, num_species+1):
                 # Index the particular species
                 index_species = np.where(species == species_type)[0]
-                #
+                
                 # Extract the (x,y,z) positions for all of these grains
                 species_x, species_y, species_z = self.xp[index_species], self.yp[index_species], self.zp[index_species]
-                #
+                
                 # Start with the 0th x-axis position and find all the grains within plus or minus half a cell length of this 0th position, this is
                 # the first cell. Loop through and go up one cell at a time. 
                 for xx in range(self.Nx): 
@@ -222,37 +214,28 @@ class density_cube:
                     # Find the grains in a given x-cell by setting minimum and maximum boundaries
                     xmin = axis_grid_x[xx] - half_cell_length # The left edge of the x-cell we are looking at
                     xmax = axis_grid_x[xx] + half_cell_length # The right edge of the x-cell we are looking at
-                    #
-                    # Find all the dust grains that are within these x-positions
-                    if xx == self.Nx - 1: # Last bin case, consider any grains less than or equal to the max
-                        index_x = np.where((species_x >= xmin) & (species_x <= xmax))[0]
-                    else:
-                        index_x = np.where((species_x >= xmin) & (species_x < xmax))[0]
-                    #
+                    
+                    # Find all the dust grains that are within these x-positions (no need for leq or geq as very unlikely a grain would be at the exact bin edge)
+                    index_x = np.where((species_x > xmin) & (species_x < xmax))[0]
+                    
                     # Now loop through all the y-positions
                     for yy in range(self.Ny):
                         # Find the grains in a given y-cell by setting minimum and maximum boundaries
                         ymin = axis_grid_y[yy] - half_cell_length # The left edge of the y-cell we are looking at
                         ymax = axis_grid_y[yy] + half_cell_length # The right edge of the y-cell we are looking at
-                        #
-                        # Find all the dust grains that are in the x-cell and in this newly defined y-position
-                        if yy == self.Ny - 1: # Last bin case, consider any grains less than or equal to the max
-                            index_y = np.where((species_y[index_x] >= ymin) & (species_y[index_x] <= ymax))[0]
-                        else:    
-                            index_y = np.where((species_y[index_x] >= ymin) & (species_y[index_x] < ymax))[0]
-                        #
+                        
+                        # Find all the dust grains that are in the x-cell and in this newly defined y-position 
+                        index_y = np.where((species_y[index_x] > ymin) & (species_y[index_x] < ymax))[0]
+                        
                         # Finally loop through all the z-positions
                         for zz in range(self.Nz):
                             # Find the grains in a given z-cell by setting minimum and maximum boundaries
                             zmin = axis_grid_z[zz] - half_cell_length # The left edge of the z-cell we are looking at
                             zmax = axis_grid_z[zz] + half_cell_length # The right edge of the z-cell we are looking at
-                            #
+                            
                             # Find all the dust grains that are within both x and y-positions as defined above, and this newly defined z-position
-                            if zz == self.Nz - 1: # Last bin case, consider any grains less than or equal to the max
-                                index_z = np.where((species_z[index_x[index_y]] >= zmin) & (species_z[index_x[index_y]] <= zmax))[0]
-                            else:
-                                index_z = np.where((species_z[index_x[index_y]] >= zmin) & (species_z[index_x[index_y]] < zmax))[0]
-                            #
+                            index_z = np.where((species_z[index_x[index_y]] > zmin) & (species_z[index_x[index_y]] < zmax))[0]
+                            
                             # Update num_per_species array with the count which is the total number of grains in index_z 
                             self.num_per_species[species_type - 1, zz, yy, xx] = len(index_z)
 
@@ -261,43 +244,35 @@ class density_cube:
         ###
         for i in range(self.Nx):
             for j in range(self.Ny):
-                if isinstance(self.grain_size, np.ndarray) is False: # This is the Monodisperse case
+
+                # This is the Monodisperse case
+                if isinstance(self.grain_size, np.ndarray) is False:
                     surface_density = np.trapz(self.data[:, j, i]) * self.dz * self.unit_sigma
                     self.tau[j, i] = surface_density * (self.kappa + self.sigma) if self.include_scattering else surface_density * self.kappa
-                    
-                else: #This is the polydisperse case in which the cell-wise averaged opacities must be calculated (N1*κ1 + N2*κ2 + N3*κ3 + N4*κ4) / N
-                    # Since this loop is already in an (x,y) loop as defined above, the below loop goes all the z-cells in the particular (x,y) column to store in the self.effective_kappa
+
+                #This is the polydisperse case in which the cell-wise averaged opacities must be calculated (N1*κ1 + N2*κ2 + N3*κ3 + N4*κ4) / N
+                else:
+                    # The below code goes through all the z-cells in the particular (x,y) column to store in the self.effective_kappa array
                     for k in range(self.Nz):
-                        weighted_kappa, weighted_sigma = 0, 0 #For each individual cell
-                        for species_type in range(len(self.grain_size)):
-                            # Add the number of grains for a given species times that species' absorption opacity coefficient
-                            weighted_kappa += self.num_per_species[species_type][k, j, i] * self.kappa[species_type]   #N*k...
-                            if self.include_scattering:
-                                # Add the number of grains for a given species times that species' scattering opacity coefficient
-                                weighted_sigma += self.num_per_species[species_type][k, j, i] * self.sigma[species_type]
 
-                        # Divide by total number of species in that (x,y,z) cell as we are doing a weighted mean
-                        if np.sum(self.num_per_species[:, k, j, i]) == 0:
-                            #print(f"No particles present in the (x={i}, y={j}, z={k}) cell, setting opacity to 0...")
-                            weighted_kappa = 0
-                        else:
-                            weighted_kappa /= np.sum(self.num_per_species[:, k, j, i])
+                        # To count the averaged opacities at each (x,y,z) cell (equivalent to N*k)
+                        weighted_kappa, weighted_sigma = 0, 0
 
-                        self.effective_kappa[k, j, i] = weighted_kappa #Add the weighted abosprtion opacity to the 3D opacity array
-
+                        # Add the number of grains in that cell for a given species times that species' opacity coefficient (stored in the self.kappa/self.sigma arrays)
+                        for species_type in range(num_species):
+                            weighted_kappa += self.num_per_species[species_type][k, j, i] * self.kappa[species_type] # This is the numerator (N1 * k1 + N2*k2 + ...)
+                            weighted_sigma = weighted_sigma + self.num_per_species[species_type][k, j, i] * self.sigma[species_type] if self.include_scattering else 0
+                        
+                        # Divide by tot number of species in that (x,y,z) cell to compute the weighted mean and add to the 3D opacity array
+                        self.effective_kappa[k, j, i] = weighted_kappa / np.sum(self.num_per_species[:, k, j, i]) if np.sum(self.num_per_species[:, k, j, i]) != 0 else 0 #Avoid division by zero 
                         if self.include_scattering:
-                            if np.sum(self.num_per_species[:, k, j, i]) == 0: #Avoid division by zero 
-                                weighted_sigma = 0
-                            else:
-                                weighted_sigma /= np.sum(self.num_per_species[:, k, j, i]) 
-
-                            self.effective_sigma[k, j, i] = weighted_sigma #Add the weighted scattering opacity to the 3D opacity array
+                            self.effective_sigma[k, j, i] = weighted_sigma / np.sum(self.num_per_species[:, k, j, i]) if np.sum(self.num_per_species[:, k, j, i]) != 0 else 0 #Avoid division by zero 
                    
-                    # Integrate (tau = rho * kappa  * dz), dz outside integral since we're assuming constant in all future cases
-                    if self.include_scattering:
-                        self.tau[j, i] = np.trapz(self.data[:, j, i] * (self.effective_kappa[:, j, i] + self.effective_sigma[:, j, i])) * self.dz * self.unit_sigma
-                    else:
-                        self.tau[j, i] = np.trapz(self.data[:, j, i] * self.effective_kappa[:, j, i]) * self.dz * self.unit_sigma
+                    # Now that the opacities have been calculated for that column, integrate
+                    self.tau[j, i] = np.trapz(self.data[:, j, i] * (self.effective_kappa[:, j, i] + self.effective_sigma[:, j, i])) * self.dz * self.unit_sigma
+                    
+        # Calculcate the ratio of cells that are optically thick (tau >= 1)
+        self.filling_factor = len(np.where(self.tau >= 1)[0]) / (self.Nx * self.Ny)
 
         return 
 
@@ -307,27 +282,21 @@ class density_cube:
         Integrates from z to L. This is the optical depth as emission progresses
         up the column, where as the optical_depth() function calculates
         along the entire column. 
-        Computes int_0^z k_eff * rhod * dz
         
         Args:
-            rhod (ndarray): 1D array of densities, along the given cell column.
-            effective_kappa (ndarray): 1D array of absorption opacities, along the given cell column corresponding to the input rhod.
-            effective_sigma (ndarray): 1D array of scattering opacities, along the given cell column corresponding to the input rhod.
+            rhod (ndarray): 1D array of dust densities, along the given column.
+            effective_kappa (ndarray): 1D array of absorption opacities, along the given column corresponding to the input rhod.
+            effective_sigma (ndarray): 1D array of scattering opacities, along the given column corresponding to the input rhod.
 
         Returns:
             1D array containing the cumulative optical depth along the column.
         """
 
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi)
-
-        t = np.zeros(self.Nz)
+        t = np.zeros(self.Nz) # To store the emission along the z-column
 
         # Integrate starting at the first cell of the column and move upward adding one cell at a time
         for i in range(self.Nz):  
-            if self.include_scattering:
-                t[i] = np.trapz(rhod[:i] * (effective_kappa[:i] + effective_sigma[:i])) * self.dz * self.unit_sigma
-            else:
-                t[i] = np.trapz(rhod[:i] * effective_kappa[:i]) * self.dz * self.unit_sigma
+            t[i] = np.trapz(rhod[:i] * (effective_kappa[:i] + effective_sigma[:i])) * self.dz * self.unit_sigma
             
         return t 
 
@@ -339,107 +308,140 @@ class density_cube:
             2D array containing the integrated values along the third axis.
         """
 
-        #self.calc_tau()
         if self.tau is None:
             raise ValueError('No optical depth map exists! Run the calc_tau() class method first!')
-    
-        self.flux = np.zeros([self.Ny, self.Nx])
+        
+        # To store the outgoing flux at each (x,y) column
+        self.flux = np.zeros((self.Ny, self.Nx))
 
-        #Estimate flux assuming optically thick emission
-        #src_fn = const.sigma_sb.cgs.value*self.T**4     
-
-        # Integrate each (x,y) colujmn
+        # Integrate each (x,y) column
         for i in range(self.Nx):
             for j in range(self.Ny):
-                #bb = np.zeros(self.Nz)
-                bb = self.src_fn[:, j, i] # The source function at each cell in a particular column
-                rhod = self.data[:, j, i] # The dust density at each cell in a particular column
-                kappa = self.effective_kappa[:, j, i] # The weighted absorption opacities at each cell in a particular column
-                sigma = self.effective_sigma[:, j, i] # The weighted scattering opacities at each cell in a particular column
-                t = self.calc_t(rhod, kappa, sigma) # This is the optical depth as emission progresses up the column 
-                mask = (rhod == 0) # Mask where the particle density is zero along the column
-                bb[mask], kappa[mask], sigma[mask]  = 0, 0, 0 # If density is zero then that cell should be zeroed out
+                rhod = self.data[:, j, i] # The dust density in a particular column
+                bb = self.src_fn[:, j, i] # The source function in a particular column
+                kappa = self.effective_kappa[:, j, i] # The weighted absorption opacities in a particular column
+                sigma = self.effective_sigma[:, j, i] # The weighted scattering opacities in a particular column (this is zero if include_scattering=False)
+                
+                # Mask where the particle density is zero along the column
+                mask = (rhod == 0)
 
+                # If density is zero then the source function and opacities should be zero as well
+                bb[mask], kappa[mask], sigma[mask] = 0, 0, 0 
+
+                # This is the optical depth as the emission progresses up the column 
+                t = self.calc_t(rhod, kappa, sigma) 
+                
                 # Integrate to compute the output flux at a given (x,y) position
                 self.flux[j, i] = np.trapz(bb * np.exp(-(self.tau[j, i] - t)), x=self.axis, dx=self.dx)
-                self.flux /= 2.0
+                #self.flux /= 2.0 # Does half the flux go up and half the flux go down? If so the calculated mass excess would double!
     
         return 
         
-    def calc_mass_excess(self, nu=230e9):
+    def calc_mass_excess(self, frequency=3e11):
         """
         Calculates the mass_excess attribute.
         
-        Args:
-            nu (float): Frequency at which to calculate the flux. Defaults to 1mm frequency.
-        
+        frequency (float): Wavelength requency at which to calculate the observed flux and thus mass excess.
+            Input must be Hz, defaults to 3e11 corresponding to the 1mm frequency.
+
         Returns:
             Float.
         """
         
-        self.unit_sigma = self.column_density / np.sqrt(2*np.pi)
+        self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
 
         #Calculate mass in cgs units
         box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) 
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2 # H is in cgs
-        self.mass = box_mass_codeunits * unit_mass # Mass is in grams
+        self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
+        # Calculate the optical depth map 
         self.calc_tau()
 
-        #Source function should be per frequency (1mm wavelength ~ 230GHz)
         if self.include_scattering:
-            # The scattering solution as approximated by Miyake & Nakagawa (1993)
+
+            # The scattering solution of a thin slab as approximated by Miyake & Nakagawa (1993),
+            # which has been used to compute the emergent intensity of protoplanetary disks including scattering
+            # This is applicable under the assumption that the disk temperature is constant
+            # and that there are no incoming radiation fields at either the upper or lower disk surfaces
+
+            # Calculate the single scattering albedo
             if isinstance(self.grain_size, np.ndarray) is False:
+                # Monodisperse
                 albedo = self.sigma / (self.kappa + self.sigma)
             else:
-                # The albedo is now 3-dimensional and thus so will the source fn!
+                # Polydisperse -- the albedo and source function are now 3-dimensional!
                 albedo = self.effective_sigma / (self.effective_kappa + self.effective_sigma)
-                albedo[~np.isfinite(albedo)] = 0 #Replace all NaN
+                albedo[~np.isfinite(albedo)] = 0 #Replace all NaNs that come about when the denominator is zero
 
+            # Similar format as Zhu. et al (2019) -- Section 2.1 (Eq. 11) See: https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf
             epsilon = 1.0 - albedo
             mu = 1.0 / np.sqrt(3.0)
-            tau_d = (2 * mu) / 3.0
-            tau_ = 0.0
+            tau_d = (2 * mu) / 3.0 # Total optical depth in the vertical direction
+            tau_ = 0.0 # Variable optical depth in the vertical direction
+
+
             numerator = np.exp(-np.sqrt(3 * epsilon) * tau_) + np.exp(np.sqrt(3 * epsilon) * (tau_ - tau_d))
             denominator = (np.exp(-np.sqrt(3 * epsilon) * tau_d) * (1 - np.sqrt(epsilon))) + (np.sqrt(epsilon) + 1)
-            J = self.blackbody(nu=nu) * (1 - (numerator / denominator))
-            self.src_fn = albedo * J + (1 - albedo) * self.blackbody(nu=nu)
-        else:
-            self.src_fn = self.blackbody(nu=nu)
-        
-       # Compute the mass underestimation 
-        if isinstance(self.grain_size, np.ndarray) is False:
-            # If T is constant, this is what you get from integrating the RT equation with constant source fn and I(0)=0
-            flux_approx = self.src_fn * (1 - np.exp(-self.tau))
-            sigma_dust = np.mean(flux_approx) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(flux_approx) / (self.src_fn * self.kappa)
-        else:
-            # In this case T is still constant but the source function is now a function of position
-            self.calc_flux()
-            if self.include_scattering:
-                assumed_opacity = (np.sum(self.kappa) + np.sum(self.sigma)) / len(self.grain_size)
-                sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * assumed_opacity)
-            else:
-                assumed_opacity = np.sum(self.kappa) / len(self.grain_size) #Assumes all grains in the simulation are equally distributed 
-                sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * assumed_opacity)
+            J = self.blackbody(frequency=frequency) * (1 - (numerator / denominator))
 
+            # Can now solve for the source function
+            self.src_fn = albedo * J + (1 - albedo) * self.blackbody(frequency=frequency)
+        else:
+            if isinstance(self.grain_size, np.ndarray) is False:
+                # Monodisperse
+                self.src_fn = self.blackbody(frequency=frequency)
+            else:
+                # Polydisperse -- make a 3D array in which the value in each cell is the source function
+                # This will be used to integrate the RT equation (values where dust density is zero will be zeroed out)
+                self.src_fn = np.zeros((self.Nz, self.Ny, self.Nx))
+                self.src_fn[::] = self.blackbody(frequency=frequency)
+
+       # Compute the mass underestimation 
+        if isinstance(self.grain_size, np.ndarray) is False: # Monodisperse
+
+            # Integrating the general RT equation with constant T and source function as well as I(0)=0 simplifies to:
+            flux_approx = self.src_fn * (1 - np.exp(-self.tau))
+
+            # Convolution theory -- take the mean of the output flux
+            sigma_dust = np.mean(flux_approx) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(flux_approx) / (self.src_fn * self.kappa)
+        
+        else: #Polydisperse -- in this case T is still constant but the source function is now a function of position
+            
+            # Need to integrate the general RT equation
+            self.calc_flux() # Sets the flux attribute
+
+            # The average opacity an observer would assume (assumes all grain sizes are equally distributed so scales with the inverse number of species)
+            assumed_opacity = (np.sum(self.kappa) + np.sum(self.sigma)) / len(self.grain_size) if self.include_scattering else np.sum(self.kappa) / len(self.grain_size)
+            
+            # Under the assumption of optically thin emission, the observed flux scales with the column density of the dust, allowing us to analytically solve for Σd as 
+            sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * assumed_opacity)
+
+        # The observed mass of the box can now be quantified as the product of Σd and the simulation area
         self.observed_mass = sigma_dust * self.area  
+
+        # The mass underestimation, ratio of true box mass to the observed mass
         self.mass_excess = self.mass / self.observed_mass
 
         return 
 
     def calc_grain_size(self):
         """
-        Calculates grain size given stokes number and 
-        gas column density
+        Calculates grain size given stokes number and gas column density
         """
 
         if isinstance(self.stoke, np.ndarray) is False:
+            # Monodisperse
             self.grain_size = self.stoke * 2. * self.column_density / np.pi / self.rho_grain
         else:
+            # Polydisperse
             if isinstance(self.rho_grain, np.ndarray) is False:
-                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be of same size!")
-            self.grain_size = np.zeros(len(self.stoke))
+                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be a list/ndarray of same size!")
+            
+            # Calculate the grain sizes corresponding to each stokes number
+            self.grain_size = np.zeros(len(self.stoke)) 
+
             for grain in range(len(self.grain_size)):
                 self.grain_size[grain] = self.stoke[grain] * 2. * self.column_density / np.pi / self.rho_grain[grain]
                 
@@ -447,55 +449,56 @@ class density_cube:
 
     def extract_opacity(self):
         """
-        Returns opacity according to grain size.
+        Returns the opacity coefficient(s) according to grain size.
         """
 
         try:
             self.calc_grain_size()
         except:
-            raise ValueError('Could not determine grain size, input stoke and rho_grain parameters and try again.')
+            raise ValueError('Could not determine grain size(s), input the stoke and rho_grain parameters and try again.')
 
-        a, k_abs, k_sca = load_opacity_values(q=self.q) #Grain size, absorption opacity, and scattering opacity
-        k_abs_fit, k_sca_fit = interp1d(a, k_abs), interp1d(a, k_sca)
+        # Grain size, absorption opacity, and scattering opacity -- from DSHARP project
+        a, k_abs, k_sca = load_opacity_values(q=self.q)
+
+        # Interpolate 
+        k_abs_fit, k_sca_fit = interpolate.interp1d(a, k_abs), interpolate.interp1d(a, k_sca)
 
         if isinstance(self.grain_size, np.ndarray) is False:
-            if self.grain_size > a.max():
-                raise ValueError('Maximum grain size supported is '+str(a.max())+' cm')
-            if self.grain_size < a.min():
-                raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
+            # Monodisperse case
+            if self.grain_size > a.max(): raise ValueError(f"Maximum grain size supported is {str(a.max())} cm.")
+            if self.grain_size < a.min(): raise ValueError(f"Minimum grain size supported is {str(a.min())} cm.")
 
-            if self.include_scattering:
-                self.kappa, self.sigma = k_abs_fit(self.grain_size), k_sca_fit(self.grain_size)
-            else:
-                self.kappa = k_abs_fit(self.grain_size)
+            # Extract the opacity coefficients for the grain size
+            self.kappa = k_abs_fit(self.grain_size)
+            self.sigma = k_sca_fit(self.grain_size) if self.include_scattering else None
+
         else:
-            if self.grain_size.max() > a.max():
-                raise ValueError('Maximum grain size supported is '+str(a.max())+' cm')
-            if self.grain_size.min() < a.min():
-                raise ValueError('Minimum grain size supported is '+str(a.min())+' cm')
+            # Polydisperse case
+            if self.grain_size.max() > a.max(): raise ValueError(f"Maximum grain size supported is {str(a.max())} cm.")
+            if self.grain_size.min() < a.min(): raise ValueError(f"Minimum grain size supported is {str(a.min())} cm.")
 
+            # Extract the opacity coefficients for all the grain sizes
             self.kappa, self.sigma = np.zeros(len(self.grain_size)), np.zeros(len(self.grain_size))
 
             for grain in range(len(self.grain_size)):
-                if self.include_scattering:
-                    self.kappa[grain], self.sigma[grain] = k_abs_fit(self.grain_size[grain]), k_sca_fit(self.grain_size[grain])
-                else:
-                    self.kappa[grain] = k_abs_fit(self.grain_size[grain])
-        
+                self.kappa[grain] = k_abs_fit(self.grain_size[grain])
+                self.sigma[grain] = k_sca_fit(self.grain_size[grain]) if self.include_scattering else 0
+
         return 
 
     def get_proto_mass(self):
         """
-        Calculates the mass of the protoplanets
+        Calculates the mass of the protoplanets.
 
         Returns:
-            Mass of the forming protoplanets, if no planetesimals the get_proto_mass attribute is zero 
+            Mass of the planetesimals, stored in the proto_mass attribute. If no planetesimals are present the value is set to zero.
         """
 
+        # Convert from code units to cgs units
         box_mass_codeunits = np.sum(self.data) 
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
         unit_mass = self.unit_sigma * self.H**2 # H is in cgs
-        self.mass = box_mass_codeunits * unit_mass # Mass is in grams
+        self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
         mp_code = self.eps_dtog * self.mass / self.npar
         mp = stats.mode(self.rhopswarm)[0]
@@ -509,56 +512,14 @@ class density_cube:
 
         self.proto_mass = np.sort(mass)
         
-        try:
+        # If there are no planetesimals set to 0
+        try: 
             self.proto_mass.max()
         except ValueError:
             self.proto_mass = 0
 
         return
 
-    def calc_filling_factor(self):
-        """
-        Calculates the filling factor attribute.
-
-        Returns:
-            Float.
-        """
-
-        #self.calc_tau()
-        
-        self.filling_factor = len(np.where(self.tau >= 1)[0]) / (self.Nx * self.Ny)
-
-        return 
-        
-    """  
-    def plot_tau(self, title='Optical Depth', savefig=False, filename='tau'):
-        #Plots the optical depth at the exit plane.
-
-        #self.calc_tau()
-
-        plt.contourf(self.axis, self.axis, np.log10(self.tau), np.linspace(-2,2,256))
-        plt.colorbar()
-        plt.xlabel('x (H)', size=16)
-        plt.ylabel('y (H)', size=16)
-        plt.title(title, size=18)
-        if savefig:
-            plt.savefig(filename+'.png', bbox_inches='tight', dpi=300)
-            plt.clf()
-        else:
-            plt.show()
-
-    def plot_flux(self):
-        #Plots the outgoing flux at the exit plane.
-
-        #self.calc_flux()
-
-        plt.contourf(self.axis, self.axis, self.flux, 256)
-        plt.xlabel('x (H)', size=16)
-        plt.ylabel('y (H)', size=16)
-        plt.title('Flux', size=18)
-        plt.colorbar()
-        plt.show()
-    """
 
 def load_cube():
     """
@@ -590,6 +551,9 @@ def load_cube():
 def load_opacity_values(q=None):
     """
     Loads the opacity values taken from the DSHARP project
+
+    Note:
+        These coefficients correspond to the 1mm frequency!
 
     Args:
         q (int, optional): The grain distribution power law index. If set to None the
@@ -624,9 +588,6 @@ def load_opacity_values(q=None):
         a, k_abs, k_sca = values[:,0], values[:,5], values[:,6]
     else:
         raise ValueError('Unsupported grain size distribution index, options are q=None for single grain size opacities or q=2.5, 3.5, or 4.0.')
-
-    #order = np.array(a).argsort()
-    #a, k_abs, k_sca = a[order], k_abs[order], k_sca[order]
 
     return a, k_abs, k_sca
 
