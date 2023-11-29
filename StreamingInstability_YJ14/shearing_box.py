@@ -7,7 +7,7 @@ Created on Thu May 26 11:01:11 2021
 """
 import warnings
 warnings.filterwarnings("ignore")
-from scipy. import interpolate, stats
+from scipy import interpolate, stats
 import astropy.constants as const
 from pathlib import Path
 import pkg_resources
