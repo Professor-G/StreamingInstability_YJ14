@@ -362,9 +362,9 @@ class density_cube:
         if self.include_scattering:
 
             # The scattering solution of a thin slab as approximated by Miyake & Nakagawa (1993),
-            # which has been used to compute the emergent intensity of protoplanetary disks including scattering
+            # which has been used to compute the emergent intensity of protoplanetary disks including scattering.
             # This is applicable under the assumption that the disk temperature is constant
-            # and that there are no incoming radiation fields at either the upper or lower disk surfaces
+            # and that there are no incoming radiation fields at either the upper or lower disk surfaces.
 
             # Calculate the single scattering albedo
             if isinstance(self.grain_size, np.ndarray) is False:
@@ -375,18 +375,18 @@ class density_cube:
                 albedo = self.effective_sigma / (self.effective_kappa + self.effective_sigma)
                 albedo[~np.isfinite(albedo)] = 0 #Replace all NaNs that come about when the denominator is zero
 
-            # Similar format as Zhu. et al (2019) -- Section 2.1 (Eq. 11) See: https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf
-            epsilon = 1.0 - albedo
-            mu = 1.0 / np.sqrt(3.0)
-            tau_d = (2 * mu) / 3.0 # Total optical depth in the vertical direction
-            tau_ = 0.0 # Variable optical depth in the vertical direction
+            # Similar format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf)
+            epsilon = 1.0 - albedo # For convinience 
+            mu = 1.0 / np.sqrt(3.0) # The rays originate from the direction of cos(θ) = 1/sqrt(3) for all inclinations -- where θ is the angle between the intensity and the vertical direction
+            tau_d = (2 * mu) / 3.0 # Total optical depth in the vertical direction? Or is this the specific depth according to the Eddington-Barbier relation?
+            tau_ = 0.0 # Variable optical depth in the vertical direction? Or is this the optical depth at the surface of the slab, which is 0?
 
-
+            # Same format as Eq. 8 of Zhu et al. (2019) -- (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf)
             numerator = np.exp(-np.sqrt(3 * epsilon) * tau_) + np.exp(np.sqrt(3 * epsilon) * (tau_ - tau_d))
             denominator = (np.exp(-np.sqrt(3 * epsilon) * tau_d) * (1 - np.sqrt(epsilon))) + (np.sqrt(epsilon) + 1)
             J = self.blackbody(frequency=frequency) * (1 - (numerator / denominator))
 
-            # Can now solve for the source function
+            # With J known we can now solve for the source function (Eq. 6 of Zhu et al. (2019))
             self.src_fn = albedo * J + (1 - albedo) * self.blackbody(frequency=frequency)
         else:
             if isinstance(self.grain_size, np.ndarray) is False:
