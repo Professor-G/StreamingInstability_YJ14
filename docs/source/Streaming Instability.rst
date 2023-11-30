@@ -284,5 +284,5 @@ The disk models used in our paper were generated with the following code:
     :class: with-shadow with-border
     :width: 1200px
 
-    Figure 5: Protoplanetary disk model.
+    Figure 6: Protoplanetary disk models employed in our study.
 
