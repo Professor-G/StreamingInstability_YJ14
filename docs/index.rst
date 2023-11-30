@@ -5,9 +5,10 @@
 
 Documentation
 ===============================
-An overview of our analysis is available `here <https://streaminginstability_yj14.readthedocs.io/en/latest/source/Analysis.html>`_.
+An overview of our analysis is available `here <https://streaminginstability-yj14.readthedocs.io/en/latest/source/Mass%20Excess%20Analysis.html>`_.
 
-   
+Questions? Please e-mail: godines@nmsu.edu   
+
 Installation
 ==================
 

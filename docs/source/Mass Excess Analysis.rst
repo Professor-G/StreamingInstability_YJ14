@@ -3,7 +3,7 @@
 Analysis
 ===========
 
-For technical information on the model we employed in this research, please see the page on `streaming instability <https://streaminginstability-yj14.readthedocs.io/en/latest/source/Streaming%20Instability.html>`_.
+For technical information on the models we employed in this research, please see the page on `streaming instability <https://streaminginstability-yj14.readthedocs.io/en/latest/source/Streaming%20Instability.html>`_.
 
 Outlined below is the procedure the `shearing_box <https://streaminginstability-yj14.readthedocs.io/en/latest/autoapi/StreamingInstability_YJ14/shearing_box/index.html#StreamingInstability_YJ14.shearing_box.shearing_box>`_ class executes upon initilization. 
 
@@ -15,7 +15,7 @@ Outlined below is the procedure the `shearing_box <https://streaminginstability-
 1) Shearing Box
 -----------
 
-We first define the size to the density cube in terms of the scale height, H, which we have defauled to 5 AU. In scale units, the shearing box has dimensions of 1.6 H along each axis, thus making the length :math:`\approx 1.2 \times 10^{14} \ \text{cm}`. The controllable parameters includes the temperature of the disk, :math:`T`, which we have assumed to be isothermal, as well as the column density of the gas, :math:`\Sigma_g`, and the frequency-dependent dust opacity coefficient, :math:`\kappa_\nu`; also in cgs units. We parameterize the column density, in code units, as follows: 
+We first define the size to the density cube in terms of the gas scale height, H, which we have defaulted to 5 AU. In scale units, the shearing box has dimensions of 1.6 H along each axis, thus making the length :math:`\approx 1.2 \times 10^{14} \ \text{cm}`. The controllable parameters includes the temperature of the disk, :math:`T`, which we have assumed to be isothermal, as well as the column density of the gas, :math:`\Sigma_g`, and the frequency-dependent dust opacity coefficient, :math:`\kappa_\nu`; also in cgs units. We parameterize the column density, in code units, as follows: 
 
 .. math::
     \Sigma_{unit} = \frac{\Sigma_g}{2\pi},
@@ -76,29 +76,6 @@ We first explored what the mass excess would when observing an isothermal disk w
 
 At period 0, before the streaming instabilities begin and the dust settles to the midplane, the box is one of constant density, and at this point the mass excess is approximate 1.5. The streaming instability in effect increases the optical depth in filamentary regions, in turn reducing the filling factor as more and more material is concentrated locally. As this occurs, orbit after orbit, the mass excess increases until reaching a mass excess of ~2 toward the end of the simulation. 
 
-.. figure:: _static/60_me.png
-    :align: center
-    :class: with-shadow with-border
-    :width: 1200px
-
-    Figure 1: Mass Excess as a function of period. Gas column density, :math:`\Sigma_g` = 60 :math:`g \ cm^{-2}`.
-
-
-A heatmap of the mass excess metric, at the final period (P = 100) is shown in Figure 3, with the accompanying filling factor displayed in Figure 4:
-
-.. figure:: _static/me_full.png
-    :align: center
-    :class: with-shadow with-border
-    :width: 1200px
-
-    Figure 3: Mass Excess as a function of opacity and gas column density.
-
-.. figure:: _static/ff_full.png
-    :align: center
-    :class: with-shadow with-border
-    :width: 1200px
-
-    Figure 4: Filling Factor as a function of opacity and gas column density.
 
 
 2) Opacity
@@ -115,7 +92,7 @@ We extracted the mm-wave opacity using `DSHARP <https://github.com/birnstiel/dsh
     Figure 5: Figure 4 from Birnstiel et al (2018). We extrapolated the mm-wave absorption and scattering opacities (top panel), in order to calculate the opacity as a function of our simulation grain size.
 
 
-Using q=2.5, we extrapolated the mm-wave absorption and scattering opacity functions. The streaming instability simulation used a Stoke's number of 0.3, and given the following relation we can solve for the grain size at a specific gas column density,
+Using grain distribution power law index of q=2.5, we extrapolated the mm-wave absorption and scattering opacity functions. The streaming instability simulation used a Stoke's number of 0.314, and given the following relation we can solve for the grain size at a specific gas column density,
 
 
 .. math::
@@ -142,15 +119,6 @@ Since the mass excess is the ratio of observed mass to actual mass inside the bo
     m_{excess} = \Sigma_d \frac{B_\nu \kappa_\nu}{I_\nu} 
 .. math::
     m_{excess} = \cancel{\Sigma_d} \frac{B_\nu}{I_\nu} \frac{1}{\cancel{\Sigma_d}}
-
-For this reason we chose an opacity of :math:`\kappa_\nu` = 1 for our analysis, as this is a common mm-wave opacity, which yielded the following mass excess as a function of :math:`\Sigma_g` and orbit:
-
-.. figure:: _static/Mass_Excess_YJ14_Missing.png
-    :align: center
-    :class: with-shadow with-border
-    :width: 1200px
-
-    Figure 6: Mass Excess as a function of gas column density and orbit. The white vertical lines correspond to missing orbits from the YJ14 streaming instability archival simulation.
 
 
 
