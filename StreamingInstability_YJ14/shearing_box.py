@@ -40,7 +40,7 @@ class density_cube:
             using the DSHARP code. Defaults to None.
         stoke (float): Stoke's number, either a float for monodisperse simulations or an array containing
             one value for each species in the case of polydisperse models.
-        rho_grain (float): Internal grain density, in cgs units. A value of 1 [g / cm^3] is typical for ices, 
+        grain_rho (float): Internal grain density, in cgs units. A value of 1 [g / cm^3] is typical for ices, 
             and 3.5 [g / cm^3] for silicates. This input can either be a float for monodisperse simulations or 
             an array containing one value for each species in the case of polydisperse models. Must correspond
             with the input Stokes number(s).
@@ -66,7 +66,7 @@ class density_cube:
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5*const.au.cgs.value, kappa=None, sigma=None, q=None,
-        stoke=0.3, rho_grain=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None, 
+        stoke=0.3, grain_rho=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None, 
         include_scattering=False, ipars=None, xp=None, yp=None, zp=None):
 
         self.data = data
@@ -78,7 +78,7 @@ class density_cube:
         self.sigma = sigma 
         self.q = q 
         self.stoke = stoke 
-        self.rho_grain = rho_grain
+        self.grain_rho = grain_rho
         self.eps_dtog = eps_dtog
         self.npar = npar
         self.aps = aps 
@@ -146,7 +146,7 @@ class density_cube:
             try:
                 self.calc_grain_size(); self.extract_opacity()
             except:
-                raise ValueError('Cannot calculate kappa -- to calculate the appropriate grain size input the stoke and rho_grain parameters.')
+                raise ValueError('Cannot calculate kappa -- to calculate the appropriate grain size input the stoke and grain_rho parameters.')
 
         # Compute the mass underestimation 
         self.calc_mass_excess(frequency=frequency)
@@ -444,17 +444,17 @@ class density_cube:
 
         if isinstance(self.stoke, np.ndarray) is False:
             # Monodisperse
-            self.grain_size = self.stoke * 2. * self.column_density / np.pi / self.rho_grain
+            self.grain_size = self.stoke * 2. * self.column_density / np.pi / self.grain_rho
         else:
             # Polydisperse
-            if isinstance(self.rho_grain, np.ndarray) is False:
-                raise ValueError("If entering multiple stoke's numbers, the corresponding rho_grain paramater must be a list/ndarray of same size!")
+            if isinstance(self.grain_rho, np.ndarray) is False:
+                raise ValueError("If entering multiple stoke's numbers, the corresponding grain_rho paramater must be a list/ndarray of same size!")
             
             # Calculate the grain sizes corresponding to each stokes number
             self.grain_size = np.zeros(len(self.stoke)) 
 
             for grain in range(len(self.grain_size)):
-                self.grain_size[grain] = self.stoke[grain] * 2. * self.column_density / np.pi / self.rho_grain[grain]
+                self.grain_size[grain] = self.stoke[grain] * 2. * self.column_density / np.pi / self.grain_rho[grain]
                 
         return
 
@@ -466,7 +466,7 @@ class density_cube:
         try:
             self.calc_grain_size()
         except:
-            raise ValueError('Could not determine grain size(s), input the stoke and rho_grain parameters and try again.')
+            raise ValueError('Could not determine grain size(s), input the stoke and grain_rho parameters and try again.')
 
         # Grain size, absorption opacity, and scattering opacity -- from DSHARP project
         a, k_abs, k_sca = load_opacity_values(q=self.q)
