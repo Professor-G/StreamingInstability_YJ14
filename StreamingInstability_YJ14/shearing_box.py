@@ -49,6 +49,9 @@ class density_cube:
             as well as the multi-species weighted opacities. 
         aps (ndarray): pvar.aps, only used to calculate the mass of protoplanets.
         rhopswarm (ndarray): pvar.rhopswarm, only used to calculate the mass of protoplanets.
+        init_var (ndarray): 3D density cube of the first (initial) snapshot so that the initial mass of the cube is known and used
+            for the mass underestimation. This is only applicable if the simulation includes self-gravity as the dust mass inside 
+            the box will decrease as sink particles are formed and grow. Defaults to None.
         include_scattering (bool): Whether scattering should be accounted for. If kappa is set to None, the DSHARP opacities will be applied. If 
             this parameter is set to True, the scattering opacity will be used in addition to the absorption opacities.
             Defaults to False, which will calculate the absorption opacities only.
@@ -117,6 +120,11 @@ class density_cube:
                 Input must be Hz, defaults to 3e11 corresponding to the 1mm frequency.
         """
 
+        # Normalize by H
+        self.data = self.data / (rh0) 
+
+
+
         # Dimensions of the box
         self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1]) * self.H # Box length (assumes a cube!)
         self.dz = self.dy = self.dx = np.diff(self.axis)[0] # Cell length
@@ -169,7 +177,7 @@ class density_cube:
             2D array containing the optical depth values at each (x,y) position.
         """
 
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
+        self.unit_sigma = self.column_density # / np.sqrt(2 * np.pi) # To convert from code units to cgs
   
         self.tau = np.zeros((self.Ny, self.Nx)) # To store the optical depth at each (x,y) column
         
@@ -348,12 +356,15 @@ class density_cube:
             Float.
         """
         
-        self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
+        #self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
+        self.unit_sigma = self.column_density #* self.H**2 / np.sqrt()
 
         #Calculate mass in cgs units
         box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) 
+        box_mass_codeunits = box_mass_codeunits / (rho0 * (cs / omega)**3) # 3 Params from the start.in
+
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
-        unit_mass = self.unit_sigma * self.H**2 # H is in cgs
+        unit_mass = self.unit_sigma * self.H**2 / np.sqrt(2*np.pi) # H is in cgs
         self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
         # Calculate the optical depth map 

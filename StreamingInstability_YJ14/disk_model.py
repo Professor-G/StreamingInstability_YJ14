@@ -638,35 +638,60 @@ plt.show()
 
 ######
 
+import numpy as  np 
+from StreamingInstability_YJ14 import disk_model
+import astropy.constants as const
+
+M_star = 1*const.M_sun.cgs.value # Mass of the star in cgs units
+M_disk = 0.01675 * const.M_sun.cgs.value # Mass of the disk in cgs units
+
+r = [10, 30, 100] # The radii of the 3 simulations
+#r = np.arange(5, 101, 1)
+r = [radius * const.au.cgs.value for radius in r] # Convert to [cgs] units
+r_c = 300 * const.au.cgs.value # The characteristic radius of the disk (in [cgs])
+
+grain_rho = 1.675 # Internal dust grain density (from DSHARP)
+Z = 0.03 # Dust to gas ratio
+q = 3/7. # Temperature power law index
+T0 = 150 # Temperature at r = 1 au
+
+# Four grain sizes in the simulations (polydisperse), in cgs units
+grain_sizes = np.array([1., 0.3, 0.1, 0.03]) 
+
+grain_sizes = np.array([1.194, 0.3582, 0.1194, 0.03582]) 
+grain_sizes = np.array([1.2, 0.36, 0.12, 0.036]) 
+
+# To store the simulation parameters (4 rows, 3 columns)
+# The rows are the dust grains from largest to smallest
+# The columns are the increasing distances from the star
+
+stoke = np.zeros((len(grain_sizes), len(r)))
+beta = np.zeros((len(grain_sizes), len(r)))
+G = np.zeros((len(grain_sizes), len(r)))
+
+for i, radius in enumerate(r):
+    for j, grain_size in enumerate(grain_sizes):
+        model = disk_model.Model(radius, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=grain_size, Z=Z, stoke=None, q=q, T0=T0)
+        stoke[j, i] = model.stoke
+        beta[j, i] = model.beta
+        G[j, i] = model.G
+
+
+
+grain_rho = 1.675 # Internal dust grain density in cgs units (from DSHARP)
+stoke = 0.314 # Stokes number of the grain (dimensionless)
+Z = 0.02 # Dust to gas ratio (dimensionless)
+q = 1.0 # Temperature profile power law index
+T0 = 600 # Temperature at r = 1 au, in Kelvin
+
+
+import numpy as  np 
+from StreamingInstability_YJ14 import disk_model
+import astropy.constants as const
+
+M_star = const.M_sun.cgs.value # Mass of the star in cgs units
 M_disk = const.M_sun.cgs.value * 0.02
-grain_rho = 1.675
-Z = 0.03
-q = 3/7.
-T0 = 150
-
-stoke = np.zeros((4,3))
-sigma_g = np.zeros((4,3))
-beta = np.zeros((4,3))
-G = np.zeros((4,3))
-i=0
-
-for radius in [10, 30, 100]:
-    r, r_c = radius*const.au.cgs.value, 300*const.au.cgs.value #360
-    j=0
-    for grain_size in [1, 0.3, 0.1, 0.03]:
-        model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, grain_size=grain_size, Z=Z, stoke=None, q=q, T0=T0)
-        stoke[j,i] = model.stoke
-        sigma_g[j,i] = model.sigma_g
-        beta[j,i] = model.beta
-        G[j,i] = model.G
-        j+=1
-    i+=1
-
-
-
-
-M_disk = const.M_sun.cgs.value * 0.01675
-grain_rho = 1.675
+grain_rho = 2
 Z = 0.03
 q = 3/7.
 T0 = 150
