@@ -75,12 +75,12 @@ The `get_params <https://streaminginstability-yj14.readthedocs.io/en/latest/_mod
 
     Figure 4: Example of a protoplanetary disk model.
 
-While the plot method allows for quick visualization, the disk model will in total calculate the following parameters: the Keplerian velocity, :math:`\Omega`, the dust and gas column densities, :math:`\Sigma_g\` and :math:`\Sigma_d`, the temperature, T, the sound speed, :math:`c_s`, the gas scale height, H, and the corresponding aspect ratio, h. It will also calculate the pressure gradient parameter, :math:`\beta`, as well as the strength of the gravity which is characterized by the Toomre Q and :math:`\tilde{g}`
+While the plot method allows for quick visualization, the disk model will in total calculate the following parameters: the Keplerian velocity, :math:`\Omega`, the dust and gas column densities, :math:`\Sigma_g` and :math:`\Sigma_d`, the temperature, T, the sound speed, :math:`c_s`, the gas scale height, H, and the corresponding aspect ratio, h. It will also calculate the pressure gradient parameter, :math:`\beta`, as well as the strength of the gravity which is characterized by the Toomre Q and :math:`\tilde{G}`
 parameters. 
 
 For this research we utilized a streaming instability simulation without self-gravity which is in turn scale free and can be placed anywhere in the disk, allowing us to quantify the mass underestimation as a function of both time and astrocentric distance, in addition to allowing for the exploration of parameter space, such as the effect different disk masses have on the analysis. 
 
-On the contrary, the simulations we used that have self-gravity enabled are not scale free in that the strength of the self-gravity (:math:`\tilde{g}`) must be defined in the simulation run file, which in turn places the simulation at a particular location in the disk. The Stokes numbers of these four grains, in addition to the radius-dependent :math:`\beta` and :math:`\tilde{g}`, are determined as follows:
+On the contrary, the simulations we used that have self-gravity enabled are not scale free in that the strength of the self-gravity (:math:`\tilde{G}`) must be defined in the simulation run file, which in turn places the simulation at a particular location in the disk. The Stokes numbers of these four grains, in addition to the radius-dependent :math:`\beta` and :math:`\tilde{G}`, are determined as follows:
 
 .. code-block:: python
 
