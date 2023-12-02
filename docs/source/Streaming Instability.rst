@@ -44,14 +44,14 @@ The `disk_model <https://streaminginstability-yj14.readthedocs.io/en/latest/auto
 
    ## Disk models for the simulations with self-gravity (monodisperse) ###
 
-   M_star = const.M_sun.cgs.value # Mast of the star 
+   M_star = const.M_sun.cgs.value # Mass of the star 
    M_disk = 0.01*const.M_sun.cgs.value # Mass of the disk
 
    # Radius or radii at which to model, and the characteristic radius of the disk (in [au])
    r, r_c = np.arange(5,100.25,0.25), 300 
    r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value # Convert to cgs units 
 
-   grain_rho = 1.675 # Internal dust grain density (from DSHARP)
+   grain_rho = 1.675 # Internal dust grain density in cgs units (from DSHARP)
    stoke = 0.314 # Stokes number of the grain
    Z = 0.02 # Dust to gas ratio
 
@@ -125,7 +125,6 @@ On the contrary, the simulations we used that have self-gravity enabled are not 
 
     Figure 5: The stokes numbers of the four grain sizes, at three different locations of the disk.
 
-
 The disk models used in our paper were generated with the following code:
 
 .. code-block:: python
@@ -137,11 +136,11 @@ The disk models used in our paper were generated with the following code:
 
    ## Disk models for the simulations with self-gravity (monodisperse) ###
 
-   M_star = const.M_sun.cgs.value # Mast of the star 
+   M_star = const.M_sun.cgs.value # Mass of the star 
    r, r_c = np.arange(5,100.25,0.25), 300 # Radii which to model, and the characteristic radius of the disk (in [au])
    r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value # Convert to cgs units 
 
-   grain_rho = 1.675 # Internal dust grain density (from DSHARP)
+   grain_rho = 1.675 # Internal dust grain density in cgs units (from DSHARP)
    stoke = 0.314 # Stokes number of the grain
    Z = 0.02 # Dust to gas ratio
    q = 1.0 # Temperature power law index
@@ -163,7 +162,7 @@ The disk models used in our paper were generated with the following code:
 
    ## Disk model for the simulations without self-gravity (polydisperse) ###
 
-   grain_rho = 1.675 # Internal dust grain density (from DSHARP)
+   grain_rho = 1.675 # Internal dust grain density in cgs units (from DSHARP)
    Z = 0.03    # Dust to gas ratio
    q = 3/7. # Temperature power law index
    T0 = 150 # Temperature at r = 1 au
@@ -345,6 +344,139 @@ For this work we analyzed streaming instability simulations, both with and witho
     :width: 1200px
 
     Figure 7: Azimuthally averaged dust column density (left) and maximum particle density (right) as the simulation progresses in time.
+
+The radiative transfer analysis and the mass underestimation calculations are described in the `Analysis <https://streaminginstability-yj14.readthedocs.io/en/latest/source/Mass%20Excess%20Analysis.html>`_ page. The code that does all of this is available as a single class in the `shearing_box <https://streaminginstability-yj14.readthedocs.io/en/latest/autoapi/StreamingInstability_YJ14/shearing_box/index.html>`_ module, called `density_cube <https://streaminginstability-yj14.readthedocs.io/en/latest/autoapi/StreamingInstability_YJ14/shearing_box/index.html#StreamingInstability_YJ14.shearing_box.density_cube>`_. For testing purposes, the program automatically loads the dust particle density of the 100th orbit of this simulation, including the domain axis:
+
+.. code-block:: python
+    
+   from StreamingInstability_YJ14 import shearing_box
+
+   cube = shearing_box.density_cube()
+
+.. figure:: _static/load_cube.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+Since the resolution is :math:`256^3`, to visualize the midplane we can plot the following, with a robust min/max scaling:
+
+.. code-block:: python
+    
+    import numpy as np
+    import matplotlib.pyplot as plt 
+
+    midplane = cube.data[128] # This is the top-down view of the midplane 
+
+    # Set the min and max pixel values to show for proper visualization
+    std = np.median(np.abs(midplane - np.median(midplane)))
+    vmin = np.median(midplane) - 3*std
+    vmax = np.median(midplane) + 10*std
+
+    # Plot with colorbar 
+    im = plt.imshow(midplane, vmin=vmin, vmax=vmax)
+    cbar = plt.colorbar(im)
+    cbar.set_label(r'$\rho_d$ [code units]', rotation=90, size=16)
+    plt.title(r'Midplane Dust Density (t / T = 100)', size=18)
+    plt.xlabel('x', size=16); plt.ylabel('y', size=16)
+
+    plt.show()
+    
+.. figure:: _static/midplane_density.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+    Figure 8: Visual of the simulation at the midplane, at orbit 100.
+
+To properly run the analysis, we need to define the simulation parameters as described above , including the dust-to-gas ratio and the Stokes number of the single simulation species. Furthermore, we need to set the gas scale height, temperature and column density at the disk radius we wish to analyze -- this is where the disk model comes into play. For this example we will analyze at a single radius only, 30 au, where ALMA can observe:
+
+.. code-block:: python
+
+    import numpy as np
+    import astropy.constants as const
+    from StreamingInstability_YJ14 import shearing_box, disk_model
+
+    # Disk parameters including the radius at which to run the analysis
+    M_star = const.M_sun.cgs.value # Mass of the star
+    M_disk = 0.02*const.M_sun.cgs.value # Mass of the disk 
+    r, r_c = 10, 300 # Radii which to model, and the characteristic radius of the disk (in [au])
+    r, r_c = r*const.au.cgs.value, r_c*const.au.cgs.value # Convert to cgs units
+
+    grain_rho = 1.675 # Internal dust grain density in cgs units (from DSHARP)
+    stoke = 0.314 # Stokes number of the grain
+    Z = 0.02 # Dust to gas ratio
+    q = 1.0 # Temperature power law index
+    T0 = 600 # Temperature at r = 1 au
+
+    include_scattering = True # We will consider the effect of photon scattering, by default the program only accounts for absorption unless this parameter is enabled
+    grain_power_law = 2.5 # Will model the grains using a power law distribution
+
+    # First configure the disk model so we know what the disk parameters are at 30 au
+    disk_model = disk_model.Model(r, r_c, M_star, M_disk, grain_rho=grain_rho, Z=Z, stoke=stoke, q=q, T0=T0)
+
+    # Configure the density_cube 
+    cube = shearing_box.density_cube(column_density=disk_model.sigma_g, H=disk_model.H, T=disk_model.T, stoke=stoke, grain_rho=grain_rho, eps_dtog=Z, include_scattering=include_scattering, q=grain_power_law)
+
+
+With the disk model and in turn the conditions of the shearing box properly configured, we can now run the radiative transfer analysis to calculate the mass underestimation factor. By default the program assumes that the observed radiation is the 1 mm wavelength, which corresponds to a frequency of :math:`3 \times 10^{11}` Hz. As this is used to compute the opacities, it would not be physical to change this parameter unless the opacity coefficients are manually input.
+
+.. code-block:: python
+
+    cube.configure(frequency=3e11)
+    print(f"Mass Underestimation: {cube.mass_excess} \nFilling Factor: {cube.filling_factor}")
+
+.. figure:: _static/print_me_ff.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+The optical depth map (``tau``) and the corresponding flux (``flux``) map are saved as class attributes, and can be visualized as follows:
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+
+    # Visualize the optical depth 
+    std = np.median(np.abs(cube.tau - np.median(cube.tau)))
+    vmin = np.median(cube.tau) - 3*std
+    vmax = np.median(cube.tau) + 10*std
+
+    # Plot with colorbar 
+    im = plt.imshow(cube.tau, vmin=vmin, vmax=vmax)
+    cbar = plt.colorbar(im)
+    cbar.set_label(r'$\tau$', rotation=90, size=16)
+    plt.title(r'Optical Depth Map (t / T = 100)', size=18)
+    plt.xlabel('x', size=16); plt.ylabel('y', size=16)
+    plt.show()
+
+.. figure:: _static/tau_map_nosg.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+    Figure 9: Optical depth map (face-on view).
+
+.. code-block:: python
+
+    # Visualize the flux  
+    std = np.median(np.abs(cube.flux - np.median(cube.flux)))
+    vmin = np.median(cube.flux) - 3*std
+    vmax = np.median(cube.flux) + 10*std
+
+    # Plot with colorbar 
+    im = plt.imshow(cube.flux, vmin=vmin, vmax=vmax)
+    cbar = plt.colorbar(im)
+    cbar.set_label(r'Flux [$\rm ergs \ s^{-1} \ \rm{cm}^2$]', rotation=90, size=16)
+    plt.title(r'Outgoing Flux (t / T = 100)', size=18)
+    plt.xlabel('x', size=16); plt.ylabel('y', size=16)
+    plt.show()
+
+.. figure:: _static/flux_map_nosg.png
+    :align: center
+    :class: with-shadow with-border
+    :width: 1200px
+
+    Figure 9: Outgoing flux map (face-on view).
 
 Simulation with Self-Gravity
 ===========

@@ -40,7 +40,12 @@ By parameterizing the above shearing-box quantities, we can calculate the optica
 .. math::
     \Sigma_{\text{surface}} = \int_{0}^{Lz} \rho_{d_{xy}} \ \Sigma_{unit} \  \text{dz},
 
-where :math:`L_z` is the length of the box along the z-axis, and :math:`\rho_{d_{xy}}` is the dust density at the given x,y coordinate. The optical depth at the corresponding coordinate can then expressed as
+where :math:`L_z` is the length of the box along the z-axis, and :math:`\rho_{d_{xy}}` is the dust density at the given x,y coordinate. 
+
+2) Radiative Transfer
+-----------
+
+The optical depth at the corresponding coordinate can then expressed as
 
 .. math::
     \tau_{xy} = \Sigma_{\text{surface}} \ \kappa_\nu.
@@ -78,7 +83,7 @@ At period 0, before the streaming instabilities begin and the dust settles to th
 
 
 
-2) Opacity
+3) Opacities
 -----------
 
 We extracted the mm-wave opacity using `DSHARP <https://github.com/birnstiel/dsharp_opac>`_, presented by `Birnstiel et al 2018 <https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf>`_. Figure 4 from their study is displayed below, which presents the particle size average opacities:
