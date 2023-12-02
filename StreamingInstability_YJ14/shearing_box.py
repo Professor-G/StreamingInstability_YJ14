@@ -120,10 +120,8 @@ class density_cube:
                 Input must be Hz, defaults to 3e11 corresponding to the 1mm frequency.
         """
 
-        # Normalize by H
-        self.data = self.data / (rh0) 
-
-
+        # CY: Need to normalize by H
+        #self.data = self.data / (rh0) 
 
         # Dimensions of the box
         self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1]) * self.H # Box length (assumes a cube!)
@@ -177,7 +175,7 @@ class density_cube:
             2D array containing the optical depth values at each (x,y) position.
         """
 
-        self.unit_sigma = self.column_density # / np.sqrt(2 * np.pi) # To convert from code units to cgs
+        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
   
         self.tau = np.zeros((self.Ny, self.Nx)) # To store the optical depth at each (x,y) column
         
@@ -356,15 +354,16 @@ class density_cube:
             Float.
         """
         
-        #self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
-        self.unit_sigma = self.column_density #* self.H**2 / np.sqrt()
+        self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
+        #self.unit_sigma = self.column_density #* self.H**2 / np.sqrt()
 
         #Calculate mass in cgs units
         box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) 
-        box_mass_codeunits = box_mass_codeunits / (rho0 * (cs / omega)**3) # 3 Params from the start.in
-
+        #box_mass_codeunits = box_mass_codeunits / (rho0 * (cs / omega)**3) # 3 Params from the start.in
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
-        unit_mass = self.unit_sigma * self.H**2 / np.sqrt(2*np.pi) # H is in cgs
+
+        #unit_mass = self.unit_sigma * self.H**2 / np.sqrt(2*np.pi) # H is in cgs
+        unit_mass = self.unit_sigma * self.H**2 # H is in cgs
         self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
         # Calculate the optical depth map 
@@ -412,11 +411,11 @@ class density_cube:
        # Compute the mass underestimation 
         if isinstance(self.grain_size, np.ndarray) is False: # Monodisperse
 
-            # Integrating the general RT equation with constant T and source function as well as I(0)=0 simplifies to:
-            flux_approx = self.src_fn * (1 - np.exp(-self.tau))
+            # Integrating the general RT equation with constant T and source function as well as I(0)=0 simplifies to the following
+            self.flux = self.src_fn * (1 - np.exp(-self.tau))
 
             # Convolution theory -- take the mean of the output flux
-            sigma_dust = np.mean(flux_approx) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(flux_approx) / (self.src_fn * self.kappa)
+            sigma_dust = np.mean(self.flux) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(self.flux) / (self.src_fn * self.kappa)
         
         else: #Polydisperse -- in this case T is still constant but the source function is now a function of position
             

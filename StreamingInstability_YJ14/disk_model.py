@@ -280,6 +280,12 @@ class Model:
             AxesPlot 
         """
 
+        if isinstance(self.r, np.ndarray):
+            if len(self.r) <= 1:
+                print('WARNING: The radius array (r) is too small for proper visualization!')
+        else:
+            print('WARNING: The radius array (r) is too small for proper visualization!')
+
         _set_style_() if savefig else plt.style.use('default')
 
         if plot_vertical:
@@ -345,7 +351,6 @@ class Model:
         else:
             ax3.set_xticks(xticks); ax3.set_xticklabels(xticks)
             ax3.set_xlabel('Radius [au]')
-
 
         ### ax4 ###
 
