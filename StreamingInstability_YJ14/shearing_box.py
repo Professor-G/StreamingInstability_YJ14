@@ -12,7 +12,7 @@ import astropy.constants as const
 from pathlib import Path
 import pkg_resources
 import numpy as np
-
+import math
 
 class density_cube:
     """
@@ -46,7 +46,10 @@ class density_cube:
             with the input Stokes number(s).
         eps_dtog (float): Dust to gas ratio, defaults to 0.03. Only used to calculate the mass of protoplanets.
         npar (int): Number of particles in the simulation, defaults to one million. Used to calculate the mass of protoplanets
-            as well as the multi-species weighted opacities. 
+            as well as the multi-species weighted opacities.
+        code_rho (float): The midplane gas density in code units (rho0 param in the start.in file, &eos_init_pars). Defaults to 1.
+        code_cs (float): The sound speed of the gas in code units (cs0 param in the start.in file, &eos_init_pars). Defaults to 2pi.
+        code_omega (float): The Keplerian orbital timescale in code units (Omega param the start.in file, &density_init_pars). Defaults to 2pi.
         aps (ndarray): pvar.aps, only used to calculate the mass of protoplanets.
         rhopswarm (ndarray): pvar.rhopswarm, only used to calculate the mass of protoplanets.
         init_var (ndarray): 3D density cube of the first (initial) snapshot so that the initial mass of the cube is known and used
@@ -66,7 +69,7 @@ class density_cube:
     """
     
     def __init__(self, data=None, axis=None, column_density=100, T=30, H=5*const.au.cgs.value, kappa=None, sigma=None, q=None,
-        stoke=0.3, grain_rho=1.0, eps_dtog=0.03, npar=1e6, aps=None, rhopswarm=None, init_var=None, 
+        stoke=0.3, grain_rho=1.0, eps_dtog=0.03, npar=1e6, code_rho=1, code_cs=2*np.pi, code_omega=2*np.pi, aps=None, rhopswarm=None, init_var=None, 
         include_scattering=False, ipars=None, xp=None, yp=None, zp=None):
 
         self.data = data
@@ -81,6 +84,9 @@ class density_cube:
         self.grain_rho = grain_rho
         self.eps_dtog = eps_dtog
         self.npar = npar
+        self.code_rho = code_rho
+        self.code_cs = code_cs 
+        self.code_omega = code_omega 
         self.aps = aps 
         self.rhopswarm = rhopswarm
         self.init_var = init_var
@@ -115,30 +121,39 @@ class density_cube:
         attributes. If sigma, H, or dx/dy/dz attributes are updated, re-run this method 
         to re-configure the settings.
 
+        Note:
+            If running this method multiple times with different astrocentric parameters,
+            ensure that the kappa and sigma parameters are reset to None if they were None 
+            initially! Failure to do so would result in the grain size and thus the opacity 
+            coefficients not properly updating. It is recommended to re-initialize the class
+            if re-running with varying parameters.
+
         Args:
             frequency (float): Wavelength requency at which to calculate the observed flux and thus mass excess.
                 Input must be Hz, defaults to 3e11 corresponding to the 1mm frequency.
         """
 
-        # CY: Need to normalize by H
-        #self.data = self.data / (rh0) 
-
         # Dimensions of the box
         self.Lz = self.Ly = self.Lx = np.abs(self.axis[0] - self.axis[-1]) * self.H # Box length (assumes a cube!)
         self.dz = self.dy = self.dx = np.diff(self.axis)[0] # Cell length
         self.Nz = self.Ny = self.Nx = len(self.axis) # No. of cells
-        self.area = self.Lx * self.Ly # Box area (code units)
-
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
+        self.area = self.Lx * self.Ly # Box area in cgs code units
 
         # Mass in code units
-        box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) # init_var is the 0th snapshot and is used for simulations with self-gravity (the initial mass)
+        box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) # init_var is the 0th snapshot and it's used for simulations with self-gravity (the initial mass)
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
-
+        
         # Convert the mass to cgs units
-        unit_mass = self.unit_sigma * self.H**2
-        self.mass = box_mass_codeunits * unit_mass 
+        self.unit_mass = (self.column_density * self.H**2) / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega)**3)
+        self.mass = box_mass_codeunits * self.unit_mass 
 
+        # To convert the dust surface density to cgs units (used when integrating to solve for tau and the RT equation)
+        #self.unit_sigma = self.column_density / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega)**2)
+        self.unit_sigma = self.column_density / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega))
+
+        #self.unit_mass = self.column_density * self.H**2 / np.sqrt(2*np.pi) 
+        #self.mass = box_mass_codeunits * self.unit_mass # Mass is in cgs
+   
         # If opacity coefficients are not input calculate the grain sizes and extract the corresponding DSHARP opacities
         if self.kappa is None:
             try:
@@ -157,9 +172,10 @@ class density_cube:
     def blackbody(self, frequency=3e11):
         """
         Planck's law describing the black body radiation of a source in thermal equilibrium at a given temperature, T.
-
-        frequency (float): Fequency of the wavelength at which to calculate the observed flux and thus the mass excess.
-            Input must be in units of Hz. Defaults to 3e11 Hz corresponding to the 1 mm wavelength.
+        
+        Args:
+            frequency (float): Fequency of the wavelength at which to calculate the observed flux and thus the mass excess.
+                Input must be in units of Hz. Defaults to 3e11 Hz corresponding to the 1 mm wavelength.
 
         Returns:
             Spectral radiance of the source. 
@@ -174,8 +190,6 @@ class density_cube:
         Returns:
             2D array containing the optical depth values at each (x,y) position.
         """
-
-        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) # To convert from code units to cgs
   
         self.tau = np.zeros((self.Ny, self.Nx)) # To store the optical depth at each (x,y) column
         
@@ -277,7 +291,7 @@ class density_cube:
                     # Now that the opacities have been calculated for that column, integrate
                     self.tau[j, i] = np.trapz(self.data[:, j, i] * (self.effective_kappa[:, j, i] + self.effective_sigma[:, j, i])) * self.dz * self.unit_sigma
                     
-        # Calculcate the ratio of cells that are optically thick (tau >= 1)
+        # Calculate the ratio of cells that are optically thick (tau >= 1)
         self.filling_factor = len(np.where(self.tau >= 1)[0]) / (self.Nx * self.Ny)
 
         return 
@@ -353,18 +367,6 @@ class density_cube:
         Returns:
             Float.
         """
-        
-        self.unit_sigma = self.column_density / np.sqrt(2*np.pi) # To convert from code units to cgs
-        #self.unit_sigma = self.column_density #* self.H**2 / np.sqrt()
-
-        #Calculate mass in cgs units
-        box_mass_codeunits = np.sum(self.data) if self.init_var is None else np.sum(self.init_var) 
-        #box_mass_codeunits = box_mass_codeunits / (rho0 * (cs / omega)**3) # 3 Params from the start.in
-        box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
-
-        #unit_mass = self.unit_sigma * self.H**2 / np.sqrt(2*np.pi) # H is in cgs
-        unit_mass = self.unit_sigma * self.H**2 # H is in cgs
-        self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
         # Calculate the optical depth map 
         self.calc_tau()
@@ -503,12 +505,6 @@ class density_cube:
         Returns:
             Mass of the planetesimals, stored in the proto_mass attribute. If no planetesimals are present the value is set to zero.
         """
-
-        # Convert from code units to cgs units
-        box_mass_codeunits = np.sum(self.data) 
-        box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
-        unit_mass = self.unit_sigma * self.H**2 # H is in cgs
-        self.mass = box_mass_codeunits * unit_mass # Mass is in cgs
 
         mp_code = self.eps_dtog * self.mass / self.npar
         mp = stats.mode(self.rhopswarm)[0]
