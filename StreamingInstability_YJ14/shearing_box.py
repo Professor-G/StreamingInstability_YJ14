@@ -12,7 +12,6 @@ import astropy.constants as const
 from pathlib import Path
 import pkg_resources
 import numpy as np
-import math
 
 class density_cube:
     """
@@ -124,9 +123,10 @@ class density_cube:
         Note:
             If running this method multiple times with different astrocentric parameters,
             ensure that the kappa and sigma parameters are reset to None if they were None 
-            initially! Failure to do so would result in the grain size and thus the opacity 
-            coefficients not properly updating. It is recommended to re-initialize the class
-            if re-running with varying parameters.
+            initially! Failure to do so will result in the grain size not updating and thus 
+            the opacity coefficients will not be properly set. Likewise if include_scattering is
+            changed, the presence of assigned kappa and sigma values will throw off the configuration. 
+            It is recommended to re-initialize the class if re-running with varying parameters.
 
         Args:
             frequency (float): Wavelength requency at which to calculate the observed flux and thus mass excess.
@@ -144,16 +144,12 @@ class density_cube:
         box_mass_codeunits = box_mass_codeunits * self.dx * self.dy * self.dz 
         
         # Convert the mass to cgs units
-        self.unit_mass = (self.column_density * self.H**2) / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega)**3)
+        self.unit_mass = (self.column_density * self.H**2) / np.sqrt(2 * np.pi) / (self.code_rho * (self.code_cs / self.code_omega)**3)
         self.mass = box_mass_codeunits * self.unit_mass 
 
-        # To convert the dust surface density to cgs units (used when integrating to solve for tau and the RT equation)
-        #self.unit_sigma = self.column_density / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega)**2)
-        self.unit_sigma = self.column_density / math.sqrt(2 * math.pi) / (self.code_rho * (self.code_cs / self.code_omega))
+        # To convert the dust surface density to cgs units (used when integrating to solve for tau and the RT solution)
+        self.unit_sigma = self.column_density / np.sqrt(2 * np.pi) / (self.code_rho * (self.code_cs / self.code_omega))
 
-        #self.unit_mass = self.column_density * self.H**2 / np.sqrt(2*np.pi) 
-        #self.mass = box_mass_codeunits * self.unit_mass # Mass is in cgs
-   
         # If opacity coefficients are not input calculate the grain sizes and extract the corresponding DSHARP opacities
         if self.kappa is None:
             try:
@@ -193,7 +189,7 @@ class density_cube:
   
         self.tau = np.zeros((self.Ny, self.Nx)) # To store the optical depth at each (x,y) column
         
-        # If polydisperse, create a 'num_per_species' 4D array to store the number of dust grains in each 3D cell on a per-species basis
+        # If polydisperse, create a 'num_per_species' 4D array to store the number of dust grains in each 3D cell on a per-species basis, used to calculate weighted opacities
         if isinstance(self.grain_size, np.ndarray):
             # Convert the ipars array to numerical labels, first species is 1, second is 2, etc...
             species = np.ceil(self.ipars / (self.npar / len(self.grain_size))).astype(int) 
@@ -230,7 +226,7 @@ class density_cube:
                 # Start with the 0th x-axis position and find all the grains within plus or minus half a cell length of this 0th position, this is
                 # the first cell. Loop through and go up one cell at a time. 
                 for xx in range(self.Nx): 
-                    print(f"Species {species_type}: {xx+1} of {self.Nx}")
+                    print(f"Calculating grain positions -- species {species_type}: {xx+1} of {self.Nx}")
                     # Find the grains in a given x-cell by setting minimum and maximum boundaries
                     xmin = axis_grid_x[xx] - half_cell_length # The left edge of the x-cell we are looking at
                     xmax = axis_grid_x[xx] + half_cell_length # The right edge of the x-cell we are looking at
@@ -259,20 +255,21 @@ class density_cube:
                             # Update num_per_species array with the count which is the total number of grains in index_z 
                             self.num_per_species[species_type - 1, zz, yy, xx] = len(index_z)
 
-        ###
-        ### Calculate the optical depth tau = kappa * rhop * dz ###
-        ###
+        #
+        # Calculate the optical depth tau = kappa * rhop * dz
+        #
         for i in range(self.Nx):
             for j in range(self.Ny):
 
-                # This is the Monodisperse case
+                # This is the Monodisperse case, opacity coefficients are single values (kappa and sigma)
                 if isinstance(self.grain_size, np.ndarray) is False:
                     surface_density = np.trapz(self.data[:, j, i]) * self.dz * self.unit_sigma
                     self.tau[j, i] = surface_density * (self.kappa + self.sigma) if self.include_scattering else surface_density * self.kappa
 
-                #This is the polydisperse case in which the cell-wise averaged opacities must be calculated (N1*κ1 + N2*κ2 + N3*κ3 + N4*κ4) / N
                 else:
-                    # The below code goes through all the z-cells in the particular (x,y) column to store in the self.effective_kappa array
+                    #This is the polydisperse case in which the cell-wise averaged opacities must be calculated (N1*κ1 + N2*κ2 + N3*κ3 + N4*κ4) / N
+
+                    # The below code goes through all the z-cells in the particular (x,y) column to store in self.effective_kappa and self.effective_sigma
                     for k in range(self.Nz):
 
                         # To count the averaged opacities at each (x,y,z) cell (equivalent to N*k)
@@ -299,7 +296,7 @@ class density_cube:
     def calc_t(self, rhod, effective_kappa, effective_sigma):
         """
         Optical depth with respect to z position along a single column.
-        Integrates from z to L. This is the optical depth as emission progresses
+        Integrates from 0 to z. This is the optical depth as emission progresses
         up the column, where as the optical_depth() function calculates
         along the entire column. 
         
@@ -323,7 +320,11 @@ class density_cube:
     def calc_flux(self):
         """
         Calculate outgoing flux using solution for RT eqn (5.113). Used only when polydisperse simulations are input!
-    
+        
+        Note:
+            The 1st term of the general RT solution is the extinction of the original intensity, and the 2nd term is the emission at a 
+            point t, extinguished in the path from t to tau. This implementation assumes that the first
+            term is zero (no back-illumination).
         Returns:
             2D array containing the integrated values along the third axis.
         """
@@ -336,6 +337,7 @@ class density_cube:
 
         # Integrate each (x,y) column
         for i in range(self.Nx):
+            print(f"Flux calculation: {i+1} out of {self.Nx}")
             for j in range(self.Ny):
                 rhod = self.data[:, j, i] # The dust density in a particular column
                 bb = self.src_fn[:, j, i] # The source function in a particular column
@@ -348,13 +350,13 @@ class density_cube:
                 # If density is zero then the source function and opacities should be zero as well
                 bb[mask], kappa[mask], sigma[mask] = 0, 0, 0 
 
-                # This is the optical depth as the emission progresses up the column 
+                # This is the optical depth as the emission progresses up the column (0 to z integral)
                 t = self.calc_t(rhod, kappa, sigma) 
-                
+                if i == 128 and j == 128:
+                    self.t=t
                 # Integrate to compute the output flux at a given (x,y) position
                 self.flux[j, i] = np.trapz(bb * np.exp(-(self.tau[j, i] - t)), x=self.axis, dx=self.dx)
-                #self.flux /= 2.0 # Does half the flux go up and half the flux go down? If so the calculated mass excess would double!
-    
+                
         return 
         
     def calc_mass_excess(self, frequency=3e11):
@@ -371,6 +373,13 @@ class density_cube:
         # Calculate the optical depth map 
         self.calc_tau()
 
+        # Compute the radiation assuming a Planckian black body
+        B_nu = self.blackbody(frequency=frequency)
+
+        #
+        # Calculate the effective source function (which is just B_nu if scattering is not accounted for)
+        #
+
         if self.include_scattering:
 
             # The scattering solution of a thin slab as approximated by Miyake & Nakagawa (1993),
@@ -381,14 +390,14 @@ class density_cube:
             # Calculate the single scattering albedo
             if isinstance(self.grain_size, np.ndarray) is False:
                 # Monodisperse
-                albedo = self.sigma / (self.kappa + self.sigma)
+                self.albedo = self.sigma / (self.kappa + self.sigma)
             else:
                 # Polydisperse -- the albedo and source function are now 3-dimensional!
-                albedo = self.effective_sigma / (self.effective_kappa + self.effective_sigma)
-                albedo[~np.isfinite(albedo)] = 0 #Replace all NaNs that come about when the denominator is zero
+                self.albedo = self.effective_sigma / (self.effective_kappa + self.effective_sigma)
+                self.albedo[~np.isfinite(self.albedo)] = 0 #Replace all NaNs that come about when the denominator is zero
 
             # Similar format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf)
-            epsilon = 1.0 - albedo # For convinience 
+            epsilon = 1.0 - self.albedo # For convenience 
             mu = 1.0 / np.sqrt(3.0) # The rays originate from the direction of cos(θ) = 1/sqrt(3) for all inclinations -- where θ is the angle between the intensity and the vertical direction
             tau_d = (2 * mu) / 3.0 # Total optical depth in the vertical direction? Or is this the specific depth according to the Eddington-Barbier relation?
             tau_ = 0.0 # Variable optical depth in the vertical direction? Or is this the optical depth at the surface of the slab, which is 0?
@@ -396,42 +405,68 @@ class density_cube:
             # Same format as Eq. 8 of Zhu et al. (2019) -- (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf)
             numerator = np.exp(-np.sqrt(3 * epsilon) * tau_) + np.exp(np.sqrt(3 * epsilon) * (tau_ - tau_d))
             denominator = (np.exp(-np.sqrt(3 * epsilon) * tau_d) * (1 - np.sqrt(epsilon))) + (np.sqrt(epsilon) + 1)
-            J = self.blackbody(frequency=frequency) * (1 - (numerator / denominator))
+            self.J = B_nu * (1 - (numerator / denominator))
 
             # With J known we can now solve for the source function (Eq. 6 of Zhu et al. (2019))
-            self.src_fn = albedo * J + (1 - albedo) * self.blackbody(frequency=frequency)
-        else:
+            if isinstance(self.grain_size, np.ndarray) is False: # Polydisperse case needs a cube for the RT integration
+                self.src_fn = np.zeros((self.Nz, self.Ny, self.Nx))
+                self.src_fn[::] = self.albedo * self.J + (1 - self.albedo) * B_nu
+            else: # Monodisperese 
+                self.src_fn = self.albedo * self.J + (1 - self.albedo) * B_nu
+            
+        else: #Absorption only case, source function is just the Planckian black body
             if isinstance(self.grain_size, np.ndarray) is False:
                 # Monodisperse
-                self.src_fn = self.blackbody(frequency=frequency)
+                self.src_fn = B_nu
             else:
                 # Polydisperse -- make a 3D array in which the value in each cell is the source function
-                # This will be used to integrate the RT equation (values where dust density is zero will be zeroed out)
+                # This will be used to integrate the RT solution (values where dust density is zero will be zeroed out)
                 self.src_fn = np.zeros((self.Nz, self.Ny, self.Nx))
-                self.src_fn[::] = self.blackbody(frequency=frequency)
+                self.src_fn[::] = B_nu
 
-       # Compute the mass underestimation 
-        if isinstance(self.grain_size, np.ndarray) is False: # Monodisperse
+        #
+        # Compute the mass underestimation 
+        #
 
-            # Integrating the general RT equation with constant T and source function as well as I(0)=0 simplifies to the following
-            self.flux = self.src_fn * (1 - np.exp(-self.tau))
+        # Monodisperse
+        if isinstance(self.grain_size, np.ndarray) is False: 
 
-            # Convolution theory -- take the mean of the output flux
-            sigma_dust = np.mean(self.flux) / (self.src_fn * (self.kappa + self.sigma)) if self.include_scattering else np.mean(self.flux) / (self.src_fn * self.kappa)
-        
-        else: #Polydisperse -- in this case T is still constant but the source function is now a function of position
+            # In the absorption only case the, source function is independent of optical depth, therefore can use the following simplified form
+            if self.include_scattering is False:
+                
+                # Integrating the general RT solution with constant T and source function as well as I(0)=0 simplifies to the following
+                self.flux = self.src_fn * (1 - np.exp(-self.tau))
+
+                # Convolution theory -- take the mean of the output flux
+                self.sigma_dust = np.mean(self.flux) / (self.src_fn * self.kappa)
             
-            # Need to integrate the general RT equation
-            self.calc_flux() # Sets the flux attribute
+            # If including photon scattering we need to solve the general RT solution since the effective source function is not independent of position
+            else:
+                
+                # Set the opactities -- the opacity at every cell is the same (cells with zero dust density will be zeroed out during flux calculation)
+                self.effective_kappa, self.effective_sigma = np.zeros((self.Nz, self.Ny, self.Nx)), np.zeros((self.Nz, self.Ny, self.Nx))
+                self.effective_kappa[::], self.effective_sigma[::] = self.kappa, self.sigma 
+
+                # Solve the RT solution to set the self.flux parameter
+                self.calc_flux()
+
+                # Convolution theory -- take the mean of the output flux
+                self.sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * (self.kappa + self.sigma))
+        
+        #Polydisperse -- in this case T is still constant but the source function is now a function of position
+        else: 
+
+            # Solve the RT solution to set the self.flux parameter
+            self.calc_flux() 
 
             # The average opacity an observer would assume (assumes all grain sizes are equally distributed so scales with the inverse number of species)
-            assumed_opacity = (np.sum(self.kappa) + np.sum(self.sigma)) / len(self.grain_size) if self.include_scattering else np.sum(self.kappa) / len(self.grain_size)
+            self.assumed_opacity = (np.sum(self.kappa) + np.sum(self.sigma)) / len(self.grain_size) if self.include_scattering else np.sum(self.kappa) / len(self.grain_size)
             
             # Under the assumption of optically thin emission, the observed flux scales with the column density of the dust, allowing us to analytically solve for Σd as 
-            sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * assumed_opacity)
+            self.sigma_dust = np.mean(self.flux) / (np.mean(self.src_fn) * self.assumed_opacity)
 
         # The observed mass of the box can now be quantified as the product of Σd and the simulation area
-        self.observed_mass = sigma_dust * self.area  
+        self.observed_mass = self.sigma_dust * self.area  
 
         # The mass underestimation, ratio of true box mass to the observed mass
         self.mass_excess = self.mass / self.observed_mass
