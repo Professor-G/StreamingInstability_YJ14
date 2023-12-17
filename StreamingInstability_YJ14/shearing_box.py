@@ -352,8 +352,7 @@ class density_cube:
 
                 # This is the optical depth as the emission progresses up the column (0 to z integral)
                 t = self.calc_t(rhod, kappa, sigma) 
-                if i == 128 and j == 128:
-                    self.t=t
+            
                 # Integrate to compute the output flux at a given (x,y) position
                 self.flux[j, i] = np.trapz(bb * np.exp(-(self.tau[j, i] - t)), x=self.axis, dx=self.dx)
                 
@@ -396,6 +395,7 @@ class density_cube:
                 self.albedo = self.effective_sigma / (self.effective_kappa + self.effective_sigma)
                 self.albedo[~np.isfinite(self.albedo)] = 0 #Replace all NaNs that come about when the denominator is zero
 
+            self.albedo=0
             # Similar format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf)
             epsilon = 1.0 - self.albedo # For convenience 
             mu = 1.0 / np.sqrt(3.0) # The rays originate from the direction of cos(θ) = 1/sqrt(3) for all inclinations -- where θ is the angle between the intensity and the vertical direction
