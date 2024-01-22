@@ -38,13 +38,13 @@ For this test the monodisperse streaming instability simulation from CY14 was us
 The domain is defined according to the :math:`axis` of the simulation, and the dust density :math:`data`,
 
 .. math::
-    L_x = L_y = L_z = abs(axis[0] - axis[-1]) \times H [cm]
+    L_x = L_y = L_z = abs(axis[0] - axis[-1]) \times H \ [\rm cm]
 
 .. math::
-    area = L_x \times L_y [cm^2]
+    area = L_x \times L_y \ [\rm cm^2]
 
 .. math::
-    dx = dy = dz = diff(axis)[0] [code units]
+    dx = dy = dz = diff(axis)[0] \ [\rm code units]
 
 .. math::
     N_x = N_y = N_z = len(axis) 
@@ -53,13 +53,15 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     box_mass_codeunits = sum(self.data) \times dx \times dy \times dz [code units]
 
 .. math::
-    unit_mass = (column_density \times H^2) / \sqrt(2 \times \pi) / (code_rho \times (code_cs / code_omega)^3 [g]
+    unit_mass = rm column_density \times H^2) / \sqrt(2 \times \pi) / (\rm code_rho \times (\rm code_cs / \rm code_omega)^3 \ [\rm g]
 
 .. math:: 
     mass = box_mass_codeunits * unit_mass # Mass of the box in [g]
 
 .. math::
-    unit_sigma = column_density / \sqrt(2 \times \pi) / (code_rho * (self.code_cs / self.code_omega)) # To convert the dust surface density to cgs units (used when integrating the RT solution and to calculate tau)
+    unit_sigma = column_density / \sqrt(2 \times \pi) / (code_rho * (self.code_cs / self.code_omega))
+
+Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical dpeth.
 
 
 2) Optical Depth
@@ -68,12 +70,12 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
 First the optical depth map is computed using the absorption and scattering opacity coefficients for the corresponding grain size at this distance (r=50 au; a=0.19 cm). From the DSHARP project these opacities are set as
 
 .. math::
-    \kappa = 2.416 [g/cm^2]
+    \kappa = 2.416 \ [\rm g / \rmcm^2]
 
 .. math::
-    \sigma = 11.636 [g/cm^2]
+    \sigma = 11.636 \ [\rm g / \rmcm^2]
 
-The optical depth is calculated by integrating the surface density, after which the filling factor is defined as the number of optically thick cells (tau > 1) divided by the total number of columns, :math: N_x \times N_y
+The optical depth is calculated by integrating the surface density, after which the filling factor is defined as the number of optically thick cells (tau > 1) divided by the total number of columns, :math:`N_x \times N_y`
 
 .. code-block:: python
 
@@ -109,9 +111,9 @@ We utilize the scattering solution of a thin slab as approximated by Miyake & Na
 Using the extracted opacities, the albedo, :math:`\omega_\nu`, for this test run is first calculated as
 
 .. math::
-    albedo = sigma / (kappa + sigma) = 0.828
+    \omega_\nu = \sigma / (\kappa + \sigma) = 0.828
 
-This high albedo is a result of the high scattering coefficient for the corresponding grain size (:math:`\sigma`= 11.636 [g/cm^2]). Our implementation of the scattering solution follows the same format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf).
+This high albedo is a result of the high scattering coefficient for the corresponding grain size (:math:`\sigma`= 11.636 [\rm g / \rm cm^2]`). Our implementation of the scattering solution follows the same format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf).
 
 .. code-block:: python
 
@@ -125,10 +127,10 @@ This high albedo is a result of the high scattering coefficient for the correspo
     denominator = (exp(-sqrt(3 * epsilon) * tau_d) * (1 - sqrt(epsilon))) + (sqrt(epsilon) + 1)
     J = B_nu * (1 - (numerator / denominator))
 
-where :math:`J_\nu` as solved above is the directional average of the intensity, and in this case takes a value of :math:`J_\nu = 9.25 \times 10^{-15}`. :math:`B_\nu` is the blackbody radiation of the disk at a frequency of 1 mm (3e11 [Hz]),
+where :math:`J_\nu` as solved above is the directional average of the intensity, and in this case takes a value of :math:`J_\nu = 9.25 \times 10^{-15}`. The blackbody radiation of the disk, :math:`B_\nu`, is calculated at the frequency of 1 mm (:math:`3 \ times 10^{11}` [Hz]),
 
 .. math::
-    B_nu = 1.716 \times 10^{-13}
+    B_\nu = 1.716 \times 10^{-13}
 
 This allows us to calculate the effective source function, :math:`S_\nu^{\rm eff}`:
 
@@ -215,7 +217,7 @@ The dust emission in protoplanetary disks depends on the temperature and optical
 To compute the column density of the dust we utilize convolution theory and take the mean of the output intensity as well as the mean of the effective source function. 
 
 .. math::
-    \Sigma_d = mean(intensity) / (mean(src_fn) * (kappa + sigma)) = 0.09477
+    \Sigma_d = mean(\rm intensity) / (mean(\rm src_fn) * (\rm kappa + \rm sigma)) = 0.09477
 
 **NOTE**: the effective source function is a 3D array as was required to integrate the RT equation, but it only contains two unique values, 0 and :math:`S_\nu^{\rm eff}`. The cells with zeros are those where there is are no dust grains, therefore by taking the mean I am skewing this away from its true value! This makes sense in the context of polydisperse simulations in which the albedo and hence :math:`S_\nu^{\rm eff}` is unique across the entire domain, but for monodisperse is the mean value the correct way to interpret this?
 
@@ -223,25 +225,27 @@ To compute the column density of the dust we utilize convolution theory and take
 Finally, the observed mass of the box can now be quantified as the product of the dust column density and the domain area, after which the mass excess can be computed as the ratio of true box mass to the observed mass
 
 .. math::
-    observed_mass = \Sigma_d * area  
+    \rm observed_mass = \Sigma_d * \rm area  
 
 .. math::
-    mass_excess = mass / observed_mass
+    \rm mass_excess = \rm mass / \rm observed_mass
 
 
 4) Results
 -----------
 
-Given a domain area of :math:`3.449 \times 10^{27}` [cm2] and a total mass of :math:`1.1 \times 10^{26}` [g], this mass excess value is 0.33945, which implies that we are observing MORE 1mm flux density than the disk emits. If instead I compute :math:`\Sigma_d` by taking the effective source function value from the scattering solution (instead of the mean), I get:
+**Given a domain area of :math:`3.449 \times 10^{27}` [cm2] and a total mass of :math:`1.1 \times 10^{26}` [g], this mass excess value is 0.33945, which implies that we are observing MORE 1mm flux density than the disk emits.** 
+
+If instead I compute :math:`\Sigma_d` by taking the effective source function value from the scattering solution (instead of the mean), I get:
 
 .. math::
-    \Sigma_d = mean(intensity) / (unique(src_fn)[1] * (kappa + sigma)) = 0.00372
+    \Sigma_d = mean(\rm intensity) / (unique(\rm src_fn)[1] * (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
-    observed_mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25}
+    \rm observed_mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
 
 .. math::
-    mass_excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
+    \rm mass_excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
 
 
 
