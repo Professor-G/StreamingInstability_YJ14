@@ -59,7 +59,7 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     \rm mass = \rm box \ \rm mass \ \rm codeunits \times \rm unit \ \rm mass 
 
 .. math::
-    \rm unit \ \rm mass = \rm column \ \rm density / \sqrt{2\pi} / (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega))
+    \rm unit \ \rm sigma = \rm column \ \rm density / (\sqrt{2\pi} \times (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega)))
 
 Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical depth.
 
@@ -219,7 +219,7 @@ To compute the column density of the dust we utilize convolution theory and take
 .. math::
     \Sigma_d = mean(\rm intensity) / (mean(S_\nu^{\rm eff}) \times (\rm kappa + \rm sigma)) = 0.09477
 
-**NOTE**: the effective source function is a 3D array as was required to integrate the RT equation, but it only contains two unique values, 0 and :math:`S_\nu^{\rm eff}`. The cells with zeros are those where there is are no dust grains, therefore by taking the mean I am skewing this away from its true value! This makes sense in the context of polydisperse simulations in which the albedo and hence :math:`S_\nu^{\rm eff}` is unique across the entire domain, but for monodisperse is the mean value the correct way to interpret this?
+**NOTE**: the effective source function is a 3D array as was required to integrate the RT equation, but it only contains two unique values, 0 and :math:`S_\nu^{\rm eff}`. The cells with zeros are those where there are no dust grains, therefore by taking the mean I am skewing this away from its true value! This makes sense in the context of polydisperse simulations in which the albedo and hence :math:`S_\nu^{\rm eff}` is unique across the entire domain, but for monodisperse is the mean value the correct way to interpret this?
 
 
 Finally, the observed mass of the box can now be quantified as the product of the dust column density and the domain area, after which the mass excess can be computed as the ratio of true box mass to the observed mass
@@ -228,7 +228,7 @@ Finally, the observed mass of the box can now be quantified as the product of th
     \rm observed \ \rm mass = \Sigma_d \times \rm area  
 
 .. math::
-    \rm mass \ \rm excess = \rm mass \times \rm observed \ \rm mass
+    \rm mass \ \rm excess = \rm mass / \rm observed \ \rm mass
 
 
 4) Results
