@@ -212,7 +212,7 @@ The intensity map for this test is shown below, and is characterized by a minimu
 The dust emission in protoplanetary disks depends on the temperature and optical depth, with the latter determined by the product of the projected surface density and the opacity. As per Mie theory, grains interact most strongly with radiation at wavelengths comparable to their size, and thus under the assumption of optically thin emission, the observed flux scales with the column density of the dust, allowing us to analytically solve for :math:`\Sigma_d` as
 
 .. math::
-    \Sigma_d = \frac{I_{\nu}}{B_{\nu} \ \kappa_\nu}.
+    \Sigma_d = \frac{I_{\nu}}{S_\nu^{\rm eff} \ \kappa_\nu}.
 
 To compute the column density of the dust we utilize convolution theory and take the mean of the output intensity as well as the mean of the effective source function. 
 
@@ -236,10 +236,10 @@ Finally, the observed mass of the box can now be quantified as the product of th
 
 **Given a domain area of :math:`3.449 \times 10^{27}` [cm2] and a total mass of :math:`1.1 \times 10^{26}` [g], this mass excess value is 0.33945, which implies that we are observing MORE 1mm flux density than the disk emits.** 
 
-If instead I compute :math:`\Sigma_d` by taking the effective source function value from the scattering solution (instead of the mean), I get:
+If instead I compute :math:`\Sigma_d` by taking the single effective source function value from the scattering solution (instead of the mean), I get:
 
 .. math::
-    \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] \times (\rm kappa + \rm sigma)) = 0.00372
+    \Sigma_d = mean(\rm intensity) / (max(S_\nu^{\rm eff}) \times (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
     \rm observed \ \rm mass = 0.00372 \times 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
@@ -247,3 +247,4 @@ If instead I compute :math:`\Sigma_d` by taking the effective source function va
 .. math::
     \rm mass \ \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
 
+**What if the scattering albedo is 0?** Re-doing the same procedure, but with :math:`\sigma = 0`, the filling factor in is 0.005 and the mass excess is 0.0452. This was calculated by taking the mean of the effective source function when computing :math:`Sigma_d`. If I use the single value instead, the mass excess is 1.1508. 
