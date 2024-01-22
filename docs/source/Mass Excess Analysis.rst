@@ -61,7 +61,7 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
 .. math::
     \rm unit \ \rm mass = \rm column \ \rm density / \sqrt{2\pi} / (\rm code \ \rm rho * (\rm code \ \rm cs / \rm code \ \rm omega))
 
-Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical dpeth.
+Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical depth.
 
 
 2) Optical Depth
@@ -246,6 +246,3 @@ If instead I compute :math:`\Sigma_d` by taking the effective source function va
 
 .. math::
     \rm mass \ \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
-
-
-
