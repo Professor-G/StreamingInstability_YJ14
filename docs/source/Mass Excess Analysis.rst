@@ -248,3 +248,29 @@ If instead I compute :math:`\Sigma_d` by taking the single effective source func
     \rm mass \ \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
 
 **What if the scattering albedo is 0?** Re-doing the same procedure, but with :math:`\sigma = 0`, the filling factor in is 0.005 and the mass excess is 0.0452. This was calculated by taking the mean of the effective source function when computing :math:`Sigma_d`. If I use the single value instead, the mass excess is 1.1508. 
+
+
+4) Polydisperse
+-----------
+
+If the simulations are conducted with multiple species, the absorption and scattering opacity coefficients are extracted in the same manner for each grain size, but a weighted opacity is calculated at each individual cell of the cube, weighted according to the number of grains in that particular cell. In our simulations with four species, we compute these effective opacities on a cell-wise basis
+
+.. math::
+    \kappa = (N1 \times \kappa_1 + N2 \times \kappa_2 + N3 \times \kappa_3 + N4 \times \kappa_4) / N
+
+.. math::
+    \sigma = (N1 \times \sigma_1 + N2 \times \sigma_2 + N3 \times \sigma_3 + N4 \times \sigma_4) / N
+
+
+where N1 is the number of dust grains of a given species in that cell, and N the total number of all species in that cell. The calculated albedo is now 3D and unique for each cell, as is the effective source function. The intensity calculations are done in the same manner as described above.
+
+The opacity of the whole box is calculated as the average
+
+.. math::
+    \rm assumed \ \rm opacity = (sum(\kappa) + sum(\sigma)) / 4 
+
+And therefore the :math:`\Sigma_d` is
+
+.. math::
+    \Sigma_d = mean(intensity) / (mean(src_fn) * rm assumed \ \rm opacity)
+        
