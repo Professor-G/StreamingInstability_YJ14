@@ -50,16 +50,16 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     N_x = N_y = N_z = len(axis) 
 
 .. math::
-    \rm box_mass_codeunits = sum(data) \times dx \times dy \times dz \ [\rm code \ \rm units]
+    \rm box \ \rm mass \ \rm codeunits = sum(data) \times dx \times dy \times dz \ [\rm code \ \rm units]
 
 .. math::
-    \rm unit_mass = \rm column_density \times H^2) / \sqrt{2\pi} / (\rm code \rm rho \times (\rm code \rm cs / \rm code \rm omega)^3 \ [\rm g]
+    \rm unit_mass = \rm column \ \rm density \times H^2) / \sqrt{2\pi} / (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega)^3 \ [\rm g]
 
 .. math:: 
-    \rm mass = \rm box_mass_codeunits * \rm unit_mass 
+    \rm mass = \rm box \ \rm mass \ \rm codeunits * \rm unit \ \rm mass 
 
 .. math::
-    \rm unit_sigma = \rm column_density / \sqrt{(2\pi)} / (\rm code \rm rho * (\rm code \rm cs / \rm code \rm omega))
+    \rm unit \ \rm mass = \rm column \ \rm density / \sqrt{2\pi} / (\rm code \ \rm rho * (\rm code \ \rm cs / \rm code \ \rm omega))
 
 Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical dpeth.
 
@@ -228,7 +228,7 @@ Finally, the observed mass of the box can now be quantified as the product of th
     \rm observed \ \rm mass = \Sigma_d \times \rm area  
 
 .. math::
-    \rm mass / \rm excess = \rm mass / \rm observed \ \rm mass
+    \rm mass \ \rm excess = \rm mass \times \rm observed \ \rm mass
 
 
 4) Results
@@ -242,8 +242,10 @@ If instead I compute :math:`\Sigma_d` by taking the effective source function va
     \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] * (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
-    \rm observed / \rm mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
+    \rm observed \ \rm mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
 
 .. math::
-    \rm mass / \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
+    \rm mass \ \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
+
+
 
