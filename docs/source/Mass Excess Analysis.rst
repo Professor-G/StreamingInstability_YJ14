@@ -6,7 +6,7 @@ Test Run
 1) Model Parameters
 -----------
 
-For this test the monodisperse streaming instability simulation from CY14 was used (no self-gravity). The simulation are disk model are parameters are defined as follows:
+For this test the monodisperse streaming instability simulation from CY14 was used (no self-gravity), employing the snapshot at the 100th orbit. The simulation and disk model are parameters are defined as follows:
 
 .. code-block:: python
 
@@ -41,25 +41,25 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     L_x = L_y = L_z = abs(axis[0] - axis[-1]) \times H \ [\rm cm]
 
 .. math::
-    area = L_x \times L_y \ [\rm cm^2]
+    \rm area = L_x \times L_y \ [\rm cm^2]
 
 .. math::
-    dx = dy = dz = diff(axis)[0] \ [\rm code units]
+    dx = dy = dz = diff(axis)[0] \ [\rm code \ \rm units]
 
 .. math::
     N_x = N_y = N_z = len(axis) 
 
 .. math::
-    box_mass_codeunits = sum(self.data) \times dx \times dy \times dz [code units]
+    \rm box_mass_codeunits = sum(data) \times dx \times dy \times dz \ [\rm code \ \rm units]
 
 .. math::
-    unit_mass = rm column_density \times H^2) / \sqrt(2 \times \pi) / (\rm code_rho \times (\rm code_cs / \rm code_omega)^3 \ [\rm g]
+    \rm unit_mass = \rm column_density \times H^2) / \sqrt(2 \times \pi) / (\rm code \rm rho \times (\rm code \rm cs / \rm code \rm omega)^3 \ [\rm g]
 
 .. math:: 
-    mass = box_mass_codeunits * unit_mass # Mass of the box in [g]
+    \rm mass = box_mass_codeunits * unit_mass 
 
 .. math::
-    unit_sigma = column_density / \sqrt(2 \times \pi) / (code_rho * (self.code_cs / self.code_omega))
+    \rm unit_sigma = \rm column_density / \sqrt(2 \times \pi) / (code_rho * (\rm code \rm cs / \rm code \rm omega))
 
 Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical dpeth.
 
@@ -70,10 +70,10 @@ Where unit_sigma will be used to convert the dust surface density to cgs units, 
 First the optical depth map is computed using the absorption and scattering opacity coefficients for the corresponding grain size at this distance (r=50 au; a=0.19 cm). From the DSHARP project these opacities are set as
 
 .. math::
-    \kappa = 2.416 \ [\rm g / \rmcm^2]
+    \kappa = 2.416 \ [\rm g / \rm cm^2]
 
 .. math::
-    \sigma = 11.636 \ [\rm g / \rmcm^2]
+    \sigma = 11.636 \ [\rm g / \rm cm^2]
 
 The optical depth is calculated by integrating the surface density, after which the filling factor is defined as the number of optically thick cells (tau > 1) divided by the total number of columns, :math:`N_x \times N_y`
 
@@ -113,7 +113,7 @@ Using the extracted opacities, the albedo, :math:`\omega_\nu`, for this test run
 .. math::
     \omega_\nu = \sigma / (\kappa + \sigma) = 0.828
 
-This high albedo is a result of the high scattering coefficient for the corresponding grain size (:math:`\sigma`= 11.636 [\rm g / \rm cm^2]`). Our implementation of the scattering solution follows the same format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf).
+This high albedo is a result of the high scattering coefficient for the corresponding grain size (:math:`\sigma = 11.636 \ [\rm g / \rm cm^2]`). Our implementation of the scattering solution follows the same format as Zhu. et al (2019) -- Section 2.1 (https://iopscience.iop.org/article/10.3847/2041-8213/ab1f8c/pdf).
 
 .. code-block:: python
 
@@ -132,10 +132,10 @@ where :math:`J_\nu` as solved above is the directional average of the intensity,
 .. math::
     B_\nu = 1.716 \times 10^{-13}
 
-This allows us to calculate the effective source function, :math:`S_\nu^{\rm eff}`:
+This allows us to calculate the effective source function, :math:`S_\nu^{\rm eff}`,
 
 .. math::
-        S_\nu^{\rm eff} = \omega_\nu J_\nu + \left(1 - \omega_\nu\right) B_\nu = 3.7 \times 10^{-14}
+        S_\nu^{\rm eff} = \omega_\nu J_\nu + \left(1 - \omega_\nu\right) B_\nu = 3.7 \times 10^{-14}.
 
 This effective source function is then used to solve the general RT equation.
 
@@ -217,7 +217,7 @@ The dust emission in protoplanetary disks depends on the temperature and optical
 To compute the column density of the dust we utilize convolution theory and take the mean of the output intensity as well as the mean of the effective source function. 
 
 .. math::
-    \Sigma_d = mean(\rm intensity) / (mean(\rm src_fn) * (\rm kappa + \rm sigma)) = 0.09477
+    \Sigma_d = mean(\rm intensity) / (mean(S_\nu^{\rm eff}) * (\rm kappa + \rm sigma)) = 0.09477
 
 **NOTE**: the effective source function is a 3D array as was required to integrate the RT equation, but it only contains two unique values, 0 and :math:`S_\nu^{\rm eff}`. The cells with zeros are those where there is are no dust grains, therefore by taking the mean I am skewing this away from its true value! This makes sense in the context of polydisperse simulations in which the albedo and hence :math:`S_\nu^{\rm eff}` is unique across the entire domain, but for monodisperse is the mean value the correct way to interpret this?
 
@@ -239,7 +239,7 @@ Finally, the observed mass of the box can now be quantified as the product of th
 If instead I compute :math:`\Sigma_d` by taking the effective source function value from the scattering solution (instead of the mean), I get:
 
 .. math::
-    \Sigma_d = mean(\rm intensity) / (unique(\rm src_fn)[1] * (\rm kappa + \rm sigma)) = 0.00372
+    \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] * (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
     \rm observed_mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
