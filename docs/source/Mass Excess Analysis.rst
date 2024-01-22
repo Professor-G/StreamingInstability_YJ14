@@ -53,13 +53,13 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     \rm box \ \rm mass \ \rm codeunits = sum(data) \times dx \times dy \times dz \ [\rm code \ \rm units]
 
 .. math::
-    \rm unit_mass = \rm column \ \rm density \times H^2) / \sqrt{2\pi} / (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega)^3 \ [\rm g]
+    \rm unit \ \rm mass = \rm column \ \rm density \times H^2) / (\sqrt{2\pi} \times (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega)^3) \ [\rm g]
 
 .. math:: 
-    \rm mass = \rm box \ \rm mass \ \rm codeunits * \rm unit \ \rm mass 
+    \rm mass = \rm box \ \rm mass \ \rm codeunits \times \rm unit \ \rm mass 
 
 .. math::
-    \rm unit \ \rm mass = \rm column \ \rm density / \sqrt{2\pi} / (\rm code \ \rm rho * (\rm code \ \rm cs / \rm code \ \rm omega))
+    \rm unit \ \rm mass = \rm column \ \rm density / \sqrt{2\pi} / (\rm code \ \rm rho \times (\rm code \ \rm cs / \rm code \ \rm omega))
 
 Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical depth.
 
@@ -217,7 +217,7 @@ The dust emission in protoplanetary disks depends on the temperature and optical
 To compute the column density of the dust we utilize convolution theory and take the mean of the output intensity as well as the mean of the effective source function. 
 
 .. math::
-    \Sigma_d = mean(\rm intensity) / (mean(S_\nu^{\rm eff}) * (\rm kappa + \rm sigma)) = 0.09477
+    \Sigma_d = mean(\rm intensity) / (mean(S_\nu^{\rm eff}) \times (\rm kappa + \rm sigma)) = 0.09477
 
 **NOTE**: the effective source function is a 3D array as was required to integrate the RT equation, but it only contains two unique values, 0 and :math:`S_\nu^{\rm eff}`. The cells with zeros are those where there is are no dust grains, therefore by taking the mean I am skewing this away from its true value! This makes sense in the context of polydisperse simulations in which the albedo and hence :math:`S_\nu^{\rm eff}` is unique across the entire domain, but for monodisperse is the mean value the correct way to interpret this?
 
@@ -239,10 +239,11 @@ Finally, the observed mass of the box can now be quantified as the product of th
 If instead I compute :math:`\Sigma_d` by taking the effective source function value from the scattering solution (instead of the mean), I get:
 
 .. math::
-    \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] * (\rm kappa + \rm sigma)) = 0.00372
+    \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] \times (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
-    \rm observed \ \rm mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
+    \rm observed \ \rm mass = 0.00372 \times 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
 
 .. math::
     \rm mass \ \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
+
