@@ -53,13 +53,13 @@ The domain is defined according to the :math:`axis` of the simulation, and the d
     \rm box_mass_codeunits = sum(data) \times dx \times dy \times dz \ [\rm code \ \rm units]
 
 .. math::
-    \rm unit_mass = \rm column_density \times H^2) / \sqrt(2 \times \pi) / (\rm code \rm rho \times (\rm code \rm cs / \rm code \rm omega)^3 \ [\rm g]
+    \rm unit_mass = \rm column_density \times H^2) / \sqrt{2\pi} / (\rm code \rm rho \times (\rm code \rm cs / \rm code \rm omega)^3 \ [\rm g]
 
 .. math:: 
-    \rm mass = box_mass_codeunits * unit_mass 
+    \rm mass = \rm box_mass_codeunits * \rm unit_mass 
 
 .. math::
-    \rm unit_sigma = \rm column_density / \sqrt(2 \times \pi) / (code_rho * (\rm code \rm cs / \rm code \rm omega))
+    \rm unit_sigma = \rm column_density / \sqrt{(2\pi)} / (\rm code \rm rho * (\rm code \rm cs / \rm code \rm omega))
 
 Where unit_sigma will be used to convert the dust surface density to cgs units, when integrating the RT solution and when calculating the optical dpeth.
 
@@ -180,7 +180,7 @@ In this test run with a monodisperse simulation, both the albedo and the effecti
             # Integrate to compute the output intensity at a given (x,y) position
             intensity[j, i] = trapz(bb * exp(-(tau[j, i] - t)), x=axis, dx=dx)
 
-where the optical depth as the emission progresses along the column (:math:`t_\nu`) is computed at in the loop as
+where the optical depth as the emission progresses along the column (:math:`t_\nu`) is computed in the loop as
 
 .. code-block:: python
 
@@ -225,10 +225,10 @@ To compute the column density of the dust we utilize convolution theory and take
 Finally, the observed mass of the box can now be quantified as the product of the dust column density and the domain area, after which the mass excess can be computed as the ratio of true box mass to the observed mass
 
 .. math::
-    \rm observed_mass = \Sigma_d * \rm area  
+    \rm observed \ \rm mass = \Sigma_d \times \rm area  
 
 .. math::
-    \rm mass_excess = \rm mass / \rm observed_mass
+    \rm mass / \rm excess = \rm mass / \rm observed \ \rm mass
 
 
 4) Results
@@ -242,17 +242,8 @@ If instead I compute :math:`\Sigma_d` by taking the effective source function va
     \Sigma_d = mean(\rm intensity) / (unique(S_\nu^{\rm eff})[1] * (\rm kappa + \rm sigma)) = 0.00372
 
 .. math::
-    \rm observed_mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
+    \rm observed / \rm mass = 0.00372 * 3.449 \times 10^{27} = 1.283 \times 10^{25} \ [\rm g]
 
 .. math::
-    \rm mass_excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
-
-
-
-
-
-
-
-
-
+    \rm mass / \rm excess = 1.1 \times 10^{26} / 1.283 \times 10^{25} = 8.648
 
