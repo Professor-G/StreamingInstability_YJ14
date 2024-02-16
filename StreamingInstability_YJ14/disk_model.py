@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -448,6 +447,8 @@ import astropy.constants as const
 from StreamingInstability_YJ14 import disk_model
 import astropy.constants as const
 
+plt.style.use('/Users/daniel/Downloads/plot_style.txt')
+
 ## Disk models for the simulations with self-gravity (monodisperse) ###
 
 M_star = const.M_sun.cgs.value # Mast of the star 
@@ -738,4 +739,3 @@ would be good to have 4 separate simulations for one location (r=10 au)
 
 
 """
-
