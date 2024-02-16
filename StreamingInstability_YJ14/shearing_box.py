@@ -540,7 +540,7 @@ class density_cube:
             Mass of the planetesimals, stored in the proto_mass attribute. If no planetesimals are present the value is set to zero.
         """
 
-        mp_code = self.eps_dtog * self.mass / self.npar
+        mp_code = self.eps_dtog * self.mass / self.npar # Note: this is no longer in code units, as self.mass is coverted during the configuration
         mp = stats.mode(self.rhopswarm)[0]
 
         index = np.where(self.aps != 0)[0]
