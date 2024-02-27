@@ -34,7 +34,7 @@ class Model:
         mmol (float): Mean molecular weight, defaults to 2.3, corresponding
             to 5 parts molecular H and 1 part He1.
         Z (float): The global solids-to-gas ratio. Defaults to 0.01.
-        st (float): Stoke's number, if input then the grain sizes at each
+        stoke (float): Stoke's number, if input then the grain sizes at each
             r will be computed. Defaults to None. 
     
     Attributes:
