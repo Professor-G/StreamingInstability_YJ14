@@ -24,10 +24,10 @@ class density_cube:
         This analysis assumes a cubic domain (symmetrical along each axis).
 
     Args:
-        data (ndarry): Simulation Data. The 3D density data cube, containing dust particle density (rhop attribute). Defaults to None in 
+        data (np.ndarray): Simulation Data. The 3D density data cube, containing dust particle density (rhop attribute). Defaults to None in 
             which case the particle densities for a single snapshop of a streaming instability simulation (Yang+14) will 
             be loaded, for testing purposes.
-        axis (ndarray): Simulation Data. The 1D array of the axis along which to integrate (x, y, or z attribute -- cubic domain is assumed).
+        axis (np.array): Simulation Data. The 1D array of the axis along which to integrate (x, y, or z attribute -- cubic domain is assumed).
             This should be in units of gas scale height, the default when running SI simulations using the Pencil Code.
             Defaults to None in which case the z-axis from pre-saved model will be loaded, for testing purposes.
         code_rho (float): Data Normalization. Midplane gas density in code units (rho0 param in the start.in file, under &eos_init_pars), used to convert 

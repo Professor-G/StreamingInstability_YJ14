@@ -21,24 +21,20 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
         if analyzing polydisperse simulations. In this case the grain size arrays are generated such that the 
         first bin starts at 1e-5 cm always, the DSHARP dust model limits, while the a_max of each bin is the grain size. 
         The left edges of the subsequent bins after the first one are a slight offset (1e-10 cm) from the right edge of 
-        the previous bin. This overlap is done to ensure the volume densities are not overcalculated which happens if the 
-        distribution always starts at 1e-5 cm as this causes bin overlaps.
+        the previous bin. This explicit overlap removal is done to ensure the volume densities are not overcalculated which happens if the 
+        distribution always starts at 1e-5 cm as this causes bin overlaps and in turn the small grain masses are overcalculated. 
 
     Args:
-        q : float
-            The power-law index of the grain size distribution (n(a) scales with a^{-q}).
-        wavelength : float
-            The wavelength at which to calculate the opacities, in cm. 
-        grain_sizes : list or array
-            List of grain sizes (in cm) to be used as the maximum sizes for the bins.
-        bin_approx : boolean
-            Whether to bin the grain sizes when calculating the opacities. This should be used when
+        q (float): The power-law index of the grain size distribution (n(a) scales with a^{-q}).
+        wavelength (float): The wavelength at which to calculate the opacities, in cm. 
+        grain_sizes (list or ndarray): List of grain sizes (in cm) to be used as the maximum sizes for the bins.
+        bin_approx (boolean): Whether to bin the grain sizes when calculating the opacities. This should be used when
             analyzing polydisperse simulations as the generated bins will be constructed in such a way
             so as to avoid overlap (each bin has a unique a_min and a_max, a_max is the size of the grain), 
             thus avoiding overestimating the mass of the small grains when getting opacities for multiple species. This
             overlaps occurs because the a_max is taken to be the size of the grain, therefore a_min must be set so as to avoid 
             overlapping grain size bins. This in turn reduces the opacities as the dust volume density is effectively scaled down.
-            Defaults to False which is appropriate for monodisperse simulations.
+            Defaults to False which assumes a monodisperse simulation.
 
     Returns:
         absorption_opacities: np.ndarray
