@@ -12,17 +12,18 @@ from scipy.interpolate import interp1d
 
 def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
     """
-    Computes the opacities using the full grain size distribution and using binned approximation.
+    Computes the opacities using either the full grain size distribution or using a binned approximation.
     These opacities are derived using the DSHARP dust model (see Birnstiel+18). Note that this routine 
-    assumes that the density of dust grains is the same for all sizes. 
+    assumes that the density of the dust grains is the same for all sizes. 
 
     Note:     
-        This function has an option we call binned approximation (bin_approx argument), which must be enabled
-        if analyzing polydisperse simulations. In this case the grain size arrays are generated such that the 
-        first bin starts at 1e-5 cm always, the DSHARP dust model limits, while the a_max of each bin is the grain size. 
+        This function has an option we call binned approximation (`bin_approx` argument), which must be enabled
+        if analyzing polydisperse simulations. In this case, the sizes in the grain size distribution are binned such that the 
+        first bin starts at 1e-5 cm always (the DSHARP dust model limits) while the a_max of each bin is the grain size. 
         The left edges of the subsequent bins after the first one are a slight offset (1e-10 cm) from the right edge of 
         the previous bin. This explicit overlap removal is done to ensure the volume densities are not overcalculated which happens if the 
-        distribution always starts at 1e-5 cm as this causes bin overlaps and in turn the small grain masses are overcalculated. 
+        distribution always starts at 1e-5 cm as this causes small grain masses to be overestimated. Also note that no opacities
+        can be computed for the smallest grain (1e-5 cm), unless a small offset is used (e.g. 1e-5 + 1e-10).
 
     Args:
         q (float): The power-law index of the grain size distribution (n(a) scales with a^{-q}).
@@ -31,9 +32,7 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
         bin_approx (boolean): Whether to bin the grain sizes when calculating the opacities. This should be used when
             analyzing polydisperse simulations as the generated bins will be constructed in such a way
             so as to avoid overlap (each bin has a unique a_min and a_max, a_max is the size of the grain), 
-            thus avoiding overestimating the mass of the small grains when getting opacities for multiple species. This
-            overlaps occurs because the a_max is taken to be the size of the grain, therefore a_min must be set so as to avoid 
-            overlapping grain size bins. This in turn reduces the opacities as the dust volume density is effectively scaled down.
+            thus avoiding overestimating the mass of the small grains when getting opacities for multiple species. 
             Defaults to False which assumes a monodisperse simulation.
 
     Returns:
@@ -43,6 +42,8 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
     """
 
     # This is the data extracted from the DSHARP code released as part of Birnstiel+18
+    resource_package = __name__
+
     resource_path = '/'.join(('data', 'all_grain_sizes.txt'))
     file = pkg_resources.resource_filename(resource_package, resource_path)
     a_orig = np.loadtxt(file)
@@ -71,21 +72,37 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
     if isinstance(grain_sizes, (list, np.ndarray)):
         if not all(a_orig.min() <= size <= a_orig.max() for size in grain_sizes): raise ValueError(f"One or more grain sizes are outside the valid range [{a_orig.min()} cm, {a_orig.max()} cm].")
     elif isinstance(grain_sizes, (int, float)):
+        if grain_sizes <= 1e-5: raise ValueError('Grain size must be greater than 1e-5 cm!')
         if not (a_orig.min() <= grain_sizes <= a_orig.max()): raise ValueError(f"Grain size {grain_sizes} cm is outside the valid range [{a_orig.min()} cm, {a_orig.max()} cm].")
-    else: raise TypeError("Grain sizes must be a single value (int or float) or a list/array of values.")
+    else:
+        raise TypeError("Grain sizes must be a single value (int or float) or a list/array of values.")
+    
+    #
     #
 
-    #
     # Find the index jnu corresponding to where lambda = wavelength
     jnu = np.argmin(np.abs(lam - wavelength))
     lambda_jnu = lam[jnu]
+
+    #
+    # Need to ensure the grain_size array is sorted! This routine will not work unless the grains are descending order (small to big)
+    # As the shearing_box class allows for the grain sizes to be input in any order, the grains will be sorted
+    # For use in this routine only after which they will be re-ordered using inverse permutation
+    if isinstance(grain_sizes, (list, np.ndarray)):
+        grain_sizes = np.array(grain_sizes)
+        _original_grain_sizes_ = grain_sizes.copy()
+        sort_index = np.argsort(grain_sizes)
+        grain_sizes = grain_sizes[sort_index]
+    else:
+        grain_sizes = np.array([grain_sizes])
+        sort_index = [0]
 
     #
     # Now run loop but get the opacity at the desired wavelength only (thus can only do one wavelength at a time)
     #
 
     # To store opacities and bins
-    num_bins = len(grain_sizes)
+    num_bins = len(grain_sizes) 
     opacity_abs = np.zeros(num_bins)
     opacity_sca = np.zeros(num_bins)
     bin_arrays = []
@@ -114,7 +131,7 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
         # Compute na, ma, da for a_new
         na = a_new ** (-q)
         ma = a_new ** 3  # assuming constant density therefore m(a) da scales with radius only
-        da = np.gradient(a_new)
+        #da = np.gradient(a_new)
 
         # Define bin edges
         bin_edges_lower = []
@@ -192,6 +209,12 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
                         opacity_sca[i] = numerator_bin / denominator_bin if denominator_bin != 0 else np.nan
                     #
                     if kappa == 'abs': bin_arrays.append(a_new[idx_min_bin:idx_max_bin+1])  #Only append bins the first time
-                                
+                    
+    # Reorder outputs to match the original order of grain_sizes
+    inverse_sort_index = np.argsort(sort_index)
+    opacity_abs = opacity_abs[inverse_sort_index]
+    opacity_sca = opacity_sca[inverse_sort_index]
+    bin_arrays = [bin_arrays[i] for i in inverse_sort_index]
+
     return opacity_abs, opacity_sca, bin_arrays
     
