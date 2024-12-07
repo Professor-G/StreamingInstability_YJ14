@@ -13,6 +13,8 @@ from pathlib import Path
 import pkg_resources
 import numpy as np
 
+from StreamingInstability_YJ14 import compute_opacities
+
 class density_cube:
     """
     Class for a density cube object. This class performs radiative transfer calculations along the z-axis of a 3D cube,
@@ -24,10 +26,10 @@ class density_cube:
         This analysis assumes a cubic domain (symmetrical along each axis).
 
     Args:
-        data (np.ndarray): Simulation Data. The 3D density data cube, containing dust particle density (rhop attribute). Defaults to None in 
+        data (ndarray): Simulation Data. The 3D density data cube, containing dust particle density (rhop attribute). Defaults to None in 
             which case the particle densities for a single snapshop of a streaming instability simulation (Yang+14) will 
             be loaded, for testing purposes.
-        axis (np.array): Simulation Data. The 1D array of the axis along which to integrate (x, y, or z attribute -- cubic domain is assumed).
+        axis (ndarray): Simulation Data. The 1D array of the axis along which to integrate (x, y, or z attribute -- cubic domain is assumed).
             This should be in units of gas scale height, the default when running SI simulations using the Pencil Code.
             Defaults to None in which case the z-axis from pre-saved model will be loaded, for testing purposes.
         code_rho (float): Data Normalization. Midplane gas density in code units (rho0 param in the start.in file, under &eos_init_pars), used to convert 
@@ -39,7 +41,7 @@ class density_cube:
         column_density (float): Disk Parameter. Column density of the gas in cgs units. Defaults to 100 (g / cm^2).
         T (float): Disk Parameter. Temperature of the entire box in cgs units, as we assume isothermality. Defaults to 30 (K).
         H (float): Disk Parameter. The scale height of the box, in cgs units. Defaults to 5 (au) ~ 7.5e13 (cm)
-        stoke (float, ndarray): Dust Grain Parameter. Stokes number of the dust species present in the model. Must either be a float for 
+        stoke (float or ndarray): Dust Grain Parameter. Stokes number of the dust species present in the model. Must either be a float for 
             monodisperse simulations or an array containing one value for each species if the model is polydisperse.
         grain_rho (float): Dust Grain Parameter. Internal dust grain density, in cgs units. A value of 1 (g / cm^3) is typical for ices, 
             and 3.5 (g / cm^3) for silicates. This input can either be a float for monodisperse simulations or 
@@ -195,12 +197,20 @@ class density_cube:
         self.init_var: Optional[np.ndarray] = init_var
 
         # Validations and Defaults
-        if self.kappa is None and self.grain_rho != 1.675:
-            raise ValueError(
-                f"The DSHARP dust model assumes a dust grain density of 1.675 g/cm^3! "
-                f"The input density is: {self.grain_rho} g/cm^3. "
-                f"Either change the dust grain density or input the appropriate opacities (kappa/sigma arguments)."
-            )
+        if isinstance(self.grain_rho, np.ndarray) == False:
+            if self.kappa is None and self.grain_rho != 1.675:
+                raise ValueError(
+                    f"The DSHARP dust model assumes a dust grain density of 1.675 g/cm^3! "
+                    f"The input density is: {self.grain_rho} g/cm^3. "
+                    f"Either change the dust grain density or input the appropriate opacities (kappa/sigma arguments)."
+                )
+        else:
+            if self.kappa is None and np.any(self.grain_rho != 1.675):
+                raise ValueError(
+                    f"The DSHARP dust model assumes a dust grain density of 1.675 g/cm^3! "
+                    f"The input density is: {self.grain_rho} g/cm^3. "
+                    f"Either change the dust grain density or input the appropriate opacities (kappa/sigma arguments)."
+                )
 
         if self.include_scattering:
             if self.kappa is not None and self.sigma is None:
@@ -278,8 +288,8 @@ class density_cube:
         if self.kappa is None:
             try:
                 self.calc_grain_size(); self.extract_opacity()
-            except:
-                raise ValueError('Cannot calculate `kappa` -- to calculate the appropriate grain size input the `stoke` and `grain_rho` parameters.')
+            except Exception as e:
+                raise ValueError('Cannot calculate `kappa` -- to calculate the appropriate grain size input the `stoke` and `grain_rho` parameters. Error: ', e)
 
         # Compute the mass underestimation 
         self.calc_mass_excess()
@@ -292,7 +302,7 @@ class density_cube:
     def blackbody(self):
         """
         Computes the blackbody spectral radiance using Planck's law for a source in thermal equilibrium 
-        at a temperature `T`.
+        at a temperature `T`. Absorption only should be
 
         Returns:
             None. Assigns the `B_nu` attribute, the spectral radiance in units of erg s⁻¹ cm⁻² Hz⁻¹ steradian⁻¹.
@@ -302,11 +312,12 @@ class density_cube:
         if self.frequency is None or self.T is None: raise ValueError("Both `frequency` and `T` must be defined before calling the `blackbody()` method.")
         if self.T <= 0: raise ValueError("Temperature (`T`) must be positive!")
 
-        hf = const.h.cgs.value * self.frequency
-        kT = const.k_B.cgs.value * self.T
-        c2 = const.c.cgs.value**2
+        #hf = const.h.cgs.value * self.frequency
+        #kT = const.k_B.cgs.value * self.T
+        #c2 = const.c.cgs.value**2
 
-        self.B_nu = 2 * hf**3 / (c2 * (np.exp(hf / kT) - 1))
+        self.B_nu = 2 * const.h.cgs.value * self.frequency**3 / (const.c.cgs.value**2 * (np.exp(const.h.cgs.value * self.frequency / (const.k_B.cgs.value * self.T)) - 1))
+        #self.B_nu = 2 * hf**3 / (c2 * (np.exp(hf / kT) - 1))
 
         return
 
@@ -382,19 +393,19 @@ class density_cube:
 
                         # To count the opacities at each (x,y,z) cell (equivalent to N*k)
                         weighted_kappa, weighted_sigma = 0, 0
-                        denominator = 0
+                        #denominator = 0
                         # Add the number of grains in that cell for a given species times that species' opacity coefficient (stored in self.kappa/self.sigma which in the polydisperse case are arrays)
                         for species_type in range(num_species):
                             # #
                             weighted_kappa += self.density_per_species[species_type][k, j, i] * self.kappa[species_type] # This is the numerator (N1*k1 + N2*k2 + ...)
                             weighted_sigma = weighted_sigma + self.density_per_species[species_type][k, j, i] * self.sigma[species_type] if self.include_scattering else 0
                             # #
-                            denominator += self.density_per_species[species_type][k, j, i]
+                            #denominator += self.density_per_species[species_type][k, j, i]
 
                         # Divide by the total number of species in that (x,y,z) cell to compute the weighted mean and to the 3D opacity array
-                        self.effective_kappa[k, j, i] = weighted_kappa / denominator if denominator != 0 else 0 # Avoid division by zero # Denominator is also np.sum(self.density_per_species[:, k, j, i])
+                        self.effective_kappa[k, j, i] = weighted_kappa / np.sum(self.density_per_species[:, k, j, i]) if np.sum(self.density_per_species[:, k, j, i]) != 0 else 0 # Avoid division by zero # Denominator is also np.sum(self.density_per_species[:, k, j, i])
                         if self.include_scattering:
-                            self.effective_sigma[k, j, i] = weighted_sigma / denominator if denominator != 0 else 0 # Avoid division by zero 
+                            self.effective_sigma[k, j, i] = weighted_sigma / np.sum(self.density_per_species[:, k, j, i]) if np.sum(self.density_per_species[:, k, j, i]) != 0 else 0 # Avoid division by zero 
                    
                     # Now that the opacities have been calculated for that column, vertically integrate to find the opacity in that column
                     self.tau[j, i] = np.trapz(self.data[:, j, i] * (self.effective_kappa[:, j, i] + self.effective_sigma[:, j, i])) * self.dz # * self.unit_sigma
@@ -443,7 +454,7 @@ class density_cube:
         
         This method implements the general solution for radiative transfer (RT) equation, assuming no back-illumination.
         It calculates the emissivity and integrates it along the column, taking into account optical depth and 
-        scattering (if enabled). 
+        scattering (if enabled). #Compute the bolometric flux
         
         Note:
             - The integration assumes the first term of the RT solution (extinction of original intensity) is zero.
@@ -678,12 +689,7 @@ class density_cube:
             None. Assigns the `kappa`, `sigma`, and `grain_size_bins` attributes.
         """
 
-        try:
-            self.calc_grain_size()
-        except:
-            raise ValueError('Could not determine grain size(s), input the stoke and grain_rho parameters and try again.')
-
-        # Grain size, absorption opacity, and scattering opacity -- from DSHARP project. Note that the bin_approx determines whether the simulation is polydisperse.
+        # Grain size, absorption opacity, and scattering opacity -- from DSHARP project. Note that the bin_approx determines whether the simulation is polydisperse.       
         self.kappa, self.sigma, self.grain_size_bins = compute_opacities.dsharp_model(self.q, self.wavelength, self.grain_size, bin_approx=isinstance(self.grain_size, np.ndarray))
        
         return 
@@ -901,7 +907,8 @@ def load_opacity_values_old(q=None):
 
     Note:
         These coefficients correspond to the 1mm wavelength opacities only! This function has been
-        replaced with the compute_opacities module.
+        replaced with the compute_opacities module which allows for opacity calculations across
+        a wide range of wavelengths.
 
     Args:
         q (int, optional): The grain distribution power law index. If set to None the
