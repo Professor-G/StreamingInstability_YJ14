@@ -14,11 +14,11 @@ import astropy.constants as const
 
 class Model:
     """
-    A midplane 1D protoplanetary disk model.
+    Generate and visualize a 1D midplane model of a protoplanetary disk.
 
-    This class is used for generating and visualizing a 1D disk midplane model
-    used to study physical processes in protoplanetary disks, such as dust dynamics,
-    temperature distribution, and gravitational stability.
+    This class defines a physically consistent disk structure, including gas and dust surface densities,
+    temperature, and stability parameters. It enables proper unit conversion and parameter initialization 
+    for use in simulations and radiative transfer calculations.
     
     Note
     ----------
@@ -345,7 +345,7 @@ class Model:
 
         Assuming power-law profiles for surface density, temperature, and Keplerian rotation,
         the gradient simplifies to:
-            dlnp/dlnr ≈ −1 − 0.5·q − 1.5
+            dlnp/dlnr ≈ −1 − 0.5 × q − 1.5
 
         For the default temperature index q = 3/7, this evaluates to:
             β ≈ h × (−2.2857)
