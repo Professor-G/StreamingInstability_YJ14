@@ -492,9 +492,7 @@ def _set_style_():
     Configure matplotlib style settings for consistent plot appearance.
 
     This function updates `matplotlib.pyplot.rcParams` to define a custom
-    plotting style, typically used before saving figures. It ensures a
-    consistent aesthetic, including color cycles, fonts, grid appearance,
-    and axis styling.
+    plotting style, which is used before saving figures. 
 
     Returns
     -------
