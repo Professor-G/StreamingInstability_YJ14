@@ -1,3 +1,21 @@
 [build-system]
-requires = ["setuptools>=61", "wheel", "numpy","astropy==5.0.4","scipy==1.7.3", "matplotlib == 3.5.1"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "protoRT"
+version = "0.9"
+description = "Radiative transfer and mass analysis for planetesimal formation simulations"
+authors = [
+  { name = "Daniel Godines", email = "danielgodinez123@gmail.com" }
+]
+license = { text = "GPL-3.0-or-later" }  
+readme = "README.md"
+requires-python = ">=3.7"
+
+dependencies = [
+  "numpy",
+  "astropy>=5.0.4",
+  "scipy>=1.7.3",
+  "matplotlib>=3.5.1"
+]

@@ -9,7 +9,7 @@ from setuptools import setup, find_packages, Extension
 
 setup(
     name="protoRT",
-    version="1.0",
+    version="0.9",
     author="Daniel Godines",
     author_email="danielgodinez123@gmail.com",
     description="Radiative transfer-based mass analysis of planetesimal formation simulations.",
