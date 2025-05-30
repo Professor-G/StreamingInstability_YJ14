@@ -17,7 +17,7 @@ from StreamingInstability_YJ14 import compute_opacities
 
 # REPO
 
-class density_cube:
+class RadiativeTransferCube:
     """
     Class for radiative transfer through a 3D dust density cube and for computing the mass excess.
 
