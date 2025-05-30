@@ -8,27 +8,28 @@ from setuptools import setup, find_packages, Extension
 
 
 setup(
-    name="StreamingInstability_YJ14",
-    version="0.1",
+    name="protoRT",
+    version="1.0",
     author="Daniel Godines",
     author_email="danielgodinez123@gmail.com",
-    description="Analysis of the planetesimal formation simulations by the streaming instability presented by Yang & Johansen (2014)",
+    description="Radiative transfer-based mass analysis of planetesimal formation simulations.",
     license='GPL-3.0',
-    url = "https://github.com/Professor-G/StreamingInstability_YJ14",
+    url = "https://github.com/Professor-G/protoRT",
     classifiers=[
 		'Development Status :: 5 - Production/Stable',
-		'Intended Audience :: Developers',
-		'Topic :: Software Development :: Build Tools',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Astronomy',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-		'Programming Language :: Python :: 3',	   
+		'Programming Language :: Python :: 3', 
+        'Operating System :: OS Independent',
 ],
     packages=find_packages('.'),
     install_requires = ['numpy','scipy','matplotlib', 'astropy'],
-    python_requires='>=3.7,<4',
+    python_requires='>=3.7',
     include_package_data=True,
     test_suite="nose.collector",
     package_data={
-    '': ['density_cube_1.npy', 'density_cube_2.npy', 'axis'],
+    '': ['all_grain_sizes.txt', 'all_wavelengths.txt', 'axis', 'density_cube_1.npy', 'density_cube_2.npy', 'kappa_abs.npy', 'kappa_sca.npy'],
 },
 
 )
