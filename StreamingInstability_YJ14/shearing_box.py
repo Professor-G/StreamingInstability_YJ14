@@ -399,15 +399,15 @@ class density_cube:
             The following attributes are updated in place:
 
             - `self.tau` : ndarray
-              2D optical depth map integrated along the z-axis for each (x, y) column.
+                2D optical depth map integrated along the z-axis for each (x, y) column.
             - `self.filling_factor` : float
-              Fraction of columns with τ ≥ 1 (optically thick).
+                Fraction of columns with τ ≥ 1 (optically thick).
             - `self.effective_kappa` : ndarray
-              3D array of locally averaged absorption opacities (polydisperse only).
+                3D array of locally averaged absorption opacities (polydisperse only).
             - `self.effective_sigma` : ndarray
-              3D array of locally averaged scattering opacities (if `include_scattering=True`).
+                3D array of locally averaged scattering opacities (if `include_scattering=True`).
             - `self.density_per_species` : ndarray
-              4D array of species-separated dust density grids (polydisperse only).
+                4D array of species-separated dust density grids (polydisperse only).
         """
 
         # Validate
@@ -573,7 +573,7 @@ class density_cube:
             The following attribute is updated:
 
             - `self.intensity` : ndarray
-              2D map of outgoing specific intensity at the top of the cube for each (x, y) position.
+                2D map of outgoing specific intensity at the top of the cube for each (x, y) position.
         """
 
         # Validate 
@@ -1097,7 +1097,7 @@ def find_index_bisect(qpar, q):
 
     References
     ----------
-    Adapted from: Anders Johansen's IDL script (via Wladimir Lyra).
+    - W. Lyra, private communication (adapted from IDL code by A. Johansen)
     """
 
     jl, ju = 0, len(q) - 1
