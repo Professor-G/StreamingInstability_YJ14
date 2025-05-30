@@ -43,7 +43,7 @@ class density_cube:
     data : ndarray, optional
         3D dust density cube (e.g., rhop field). Defaults to test data if None.
     axis : ndarray, optional
-        1D coordinate array along the integration axis (typically `z`), in units of gas scale height.
+        1D coordinate array along the integration axis (must be `z`), in units of gas scale height.
     code_rho : float, optional
         Midplane gas density in code units (`rho0` in `start.in`). Default is 1.
     code_cs : float, optional
@@ -59,7 +59,8 @@ class density_cube:
     stoke : float or ndarray
         Stokes number(s) for the dust population.
     grain_rho : float or ndarray, optional
-        Internal grain density (g/cm³). If None, defaults to 1.675.
+        Internal grain density (g/cm³). If None, defaults to 1.675, which is from the DSHARP dust model
+        and must be used if no opacities are input as DSHARP opacities are used by default.
     wavelength : float, optional
         Wavelength at which opacities are computed (cm). Range: 1e-5 to 10. Default is 0.1.
     include_scattering : bool, optional
@@ -71,28 +72,28 @@ class density_cube:
     q : float, optional
         Power-law index for grain size distribution (n(a) ∝ a^{-q}). Default is 2.5.
     npar : int, optional
-        Number of particles in simulation (used for weighting). Default is 1,000,000.
+        Number of particles in the simulation. Only required for multi-species simulations. Default is 1,000,000.
     ipars, xp, yp, zp : ndarray, optional
-        Particle species and positions (used in polydisperse opacity calculations).
+        Particle species and positions. Only required for multi-species simulations.
     xgrid, ygrid, zgrid : ndarray, optional
-        Grid coordinates used to bin particles into grid cells for opacity weighting.
+        Grid coordinates used to bin particles into grid cells for opacity weighting. Only required for multi-species simulations.
     aps : ndarray, optional
-        Azimuthal positions of particles for proto-mass calculation.
+        Azimuthal positions of particles for proto-mass calculation. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     rhopswarm : ndarray, optional
-        Local swarm densities used in proto-mass calculation.
+        Local swarm densities used in proto-mass calculation. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     eps_dtog : float, optional
-        Dust-to-gas ratio used to estimate proto-masses.
+        Dust-to-gas ratio used to estimate proto-masses. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     init_var : ndarray, optional
-        Initial density cube for mass excess calculation.
+        Initial density cube for mass excess calculation. Only required for self-gravitating simulations. In these cases the initial mass should be considered in the mass excess calculation.
 
     Attributes
     ----------
     axis : ndarray
-        The 1D coordinate array corresponding to the integration axis (typically z), in units of gas scale height.
+        The 1D coordinate array corresponding to the integration axis (must be the z-axis), in units of gas scale height.
     data : ndarray
         The 3D dust density cube (rhop field), used for radiative transfer.
     filling_factor : float
-        Fraction of pixels with τ > 1 (optically thick columns).
+        Fraction of columns with τ ≥ 1 (optically thick).
     grain_size : float or ndarray
         Derived grain size(s) based on Stokes number(s).
     H : float
@@ -102,20 +103,21 @@ class density_cube:
     mass : float
         Total dust mass in the cube (g).
     mass_excess : float
-        Ratio of true dust mass to inferred dust mass (from the (sub-mm) intensity).
+        Ratio of true dust mass to inferred dust mass (from the optically thin approximation).
     proto_mass : float
-        Total mass in gravitationally bound clumps, if self-gravity is included.
+        Total mass in gravitationally bound clumps (g), if simulation is self-gravitating.
     tau : ndarray
         Optical depth map computed along the z-axis.
     
     Methods
     -------
     configure()
-        Initializes internal attributes and computes opacity if not provided.
+        Initializes internal attributes and computes the opacity (if not provided), calculates the optical depth, 
+        performs the radiative transfer, and then computes the mass excess.
     blackbody()
         Computes blackbody intensity from Planck's law at temperature T.
     calc_tau()
-        Computes the optical depth τ across the cube.
+        Computes the 2D optical depth (τ) map.
     calc_t(rhod, kappa, sigma)
         Computes cumulative τ along one vertical column.
     calc_intensity()
@@ -125,7 +127,7 @@ class density_cube:
     calc_grain_size()
         Converts Stokes number(s) into physical grain size(s).
     extract_opacity()
-        Computes opacities using DSHARP tables.
+        Computes opacities using the DSHARP dust model.
     get_proto_mass()
         Estimates mass in bound clumps (protoplanets) using swarm density and azimuthal info.
     """
@@ -252,8 +254,8 @@ class density_cube:
         computes the total mass of the cube in cgs units, and prepares
         quantities required for radiative transfer and mass excess analysis.
 
-        It must be re-run if key inputs—such as the scale height `H`, the 
-        absorption/scattering opacities (`kappa`, `sigma`), or grid spacing (`axis`)—
+        It must be re-run if key inputs, such as the scale height `H`, the 
+        absorption/scattering opacities (`kappa`, `sigma`), or grid spacing (`axis`),
         are updated.
 
         Raises
@@ -267,27 +269,27 @@ class density_cube:
             This method updates the following internal attributes in place:
 
             - `self.Lx`, `self.Ly`, `self.Lz` : float
-              Physical dimensions of the cube (cm).
+                Physical dimensions of the cube (cm).
             - `self.dx`, `self.dy`, `self.dz` : float
-              Grid cell spacing (cm).
+                Grid cell spacing (cm).
             - `self.mass` : float
-              Total dust mass in the cube (g).
+                Total dust mass in the cube (g).
             - `self.unit_mass` : float
-              Conversion factor from code mass units to CGS (g).
+                Conversion factor from code mass units to CGS (g).
             - `self.unit_density` : float
-              Conversion factor from code density units to CGS (g/cm³).
+                Conversion factor from code density units to CGS (g/cm³).
             - `self.unit_sigma` : float
-              Conversion factor for dust surface density (g/cm²).
+                Conversion factor for dust surface density (g/cm²).
             - `self.data` : ndarray
-              Density cube converted to CGS units (g/cm³).
+                Density cube converted to CGS units (g/cm³).
             - `self.frequency` : float
-              Frequency corresponding to the specified wavelength (Hz).
+                Frequency corresponding to the specified wavelength (Hz).
             - `self.mass_excess` : float
-              Ratio of true dust mass to inferred mass assuming optically thin emission.
+                Ratio of true dust mass to inferred mass assuming optically thin emission.
             - `self.tau` : ndarray
-              Optical depth map (computed in later steps).
+                Optical depth map (computed in later steps).
             - `self.proto_mass` : float
-              Total protoplanet mass (if `aps` and `rhopswarm` are available).
+                Total protoplanet mass (if `aps` and `rhopswarm` are available).
         """
 
         # Data configuration check
@@ -993,7 +995,7 @@ def particles_to_density(
 
     Notes
     -----
-    - The interpolation uses a second-order accurate kernel based on Lyra's implementation.
+    - The interpolation uses a second-order accurate kernel.
     - The resulting array excludes ghost zones as defined by index limits.
     - Ensure `xp`, `yp`, `zp` fall within bounds of `x`, `y`, `z` to avoid edge errors.
 
