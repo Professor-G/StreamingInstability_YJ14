@@ -968,7 +968,7 @@ def particles_to_density(
     Parameters
     ----------
     xp, yp, zp : array_like
-        Particle positions in x, y, and z (usually from simulation snapshots). Pencil Code stores these as attributes in the pvar files.
+        Particle positions in x, y, and z. Pencil Code stores these as attributes in the pvar files.
     x, y, z : array_like
         Grid node coordinates along x, y, and z axes, respectively. Pencil Code stores these as attributes in read_grid().
     rhop_swarm : float or array_like, optional
