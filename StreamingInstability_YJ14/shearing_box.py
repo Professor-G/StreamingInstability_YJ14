@@ -261,36 +261,33 @@ class density_cube:
         ValueError
             If `self.data` or `self.axis` are not set prior to calling this method.
 
-        Updates
-        -------
-        self.Lx, self.Ly, self.Lz : float
-            Physical dimensions of the cube (cm).
-        self.dx, self.dy, self.dz : float
-            Grid cell spacing (cm).
-        self.mass : float
-            Total dust mass in the cube (g).
-        self.unit_mass : float
-            Conversion factor from code mass units to cgs (g).
-        self.unit_density : float
-            Conversion factor from code density units to cgs (g/cm³).
-        self.unit_sigma : float
-            Conversion factor for dust surface density (g/cm²).
-        self.data : ndarray
-            Density cube converted to cgs units (g/cm³).
-        self.frequency : float
-            Frequency corresponding to the given wavelength (Hz).
-        self.mass_excess : float
-            Ratio of true dust mass to inferred dust mass from intensity
-            (under the assumption of optically thin emission).
-        self.tau : ndarray
-            Optical depth map computed later during radiative transfer.
-        self.proto_mass : float
-            Total protoplanet mass, if `aps` and `rhopswarm` are provided.
-
         Returns
         -------
         None
-            This method updates internal attributes in place.
+            This method updates the following internal attributes in place:
+
+            - `self.Lx`, `self.Ly`, `self.Lz` : float
+              Physical dimensions of the cube (cm).
+            - `self.dx`, `self.dy`, `self.dz` : float
+              Grid cell spacing (cm).
+            - `self.mass` : float
+              Total dust mass in the cube (g).
+            - `self.unit_mass` : float
+              Conversion factor from code mass units to CGS (g).
+            - `self.unit_density` : float
+              Conversion factor from code density units to CGS (g/cm³).
+            - `self.unit_sigma` : float
+              Conversion factor for dust surface density (g/cm²).
+            - `self.data` : ndarray
+              Density cube converted to CGS units (g/cm³).
+            - `self.frequency` : float
+              Frequency corresponding to the specified wavelength (Hz).
+            - `self.mass_excess` : float
+              Ratio of true dust mass to inferred mass assuming optically thin emission.
+            - `self.tau` : ndarray
+              Optical depth map (computed in later steps).
+            - `self.proto_mass` : float
+              Total protoplanet mass (if `aps` and `rhopswarm` are available).
         """
 
         # Data configuration check
@@ -394,23 +391,21 @@ class density_cube:
             If required attributes (`self.data`, `self.dz`, `self.kappa`, etc.) are not defined.
             If any necessary polydisperse inputs are missing.
 
-        Updates
-        -------
-        self.tau : ndarray
-            2D optical depth map integrated along the z-axis for each (x, y) column.
-        self.filling_factor : float
-            Fraction of columns with τ ≥ 1 (optically thick).
-        self.effective_kappa : ndarray
-            3D array of locally averaged absorption opacities (polydisperse only).
-        self.effective_sigma : ndarray
-            3D array of locally averaged scattering opacities (if `include_scattering=True`).
-        self.density_per_species : ndarray
-            4D array of species-separated dust density grids (polydisperse only).
-
         Returns
         -------
         None
-            All values are stored in object attributes.
+            The following attributes are updated in place:
+
+            - `self.tau` : ndarray
+              2D optical depth map integrated along the z-axis for each (x, y) column.
+            - `self.filling_factor` : float
+              Fraction of columns with τ ≥ 1 (optically thick).
+            - `self.effective_kappa` : ndarray
+              3D array of locally averaged absorption opacities (polydisperse only).
+            - `self.effective_sigma` : ndarray
+              3D array of locally averaged scattering opacities (if `include_scattering=True`).
+            - `self.density_per_species` : ndarray
+              4D array of species-separated dust density grids (polydisperse only).
         """
 
         # Validate
@@ -570,15 +565,13 @@ class density_cube:
         ValueError
             If required attributes such as `self.data`, `self.tau`, or opacity arrays are missing or have incorrect shapes.
 
-        Updates
-        -------
-        self.intensity : ndarray
-            2D map of outgoing specific intensity at the top of the cube for each (x, y) position.
-
         Returns
         -------
         None
-            Computed values are stored in `self.intensity`.
+            The following attribute is updated:
+
+            - `self.intensity` : ndarray
+              2D map of outgoing specific intensity at the top of the cube for each (x, y) position.
         """
 
         # Validate 
@@ -654,24 +647,19 @@ class density_cube:
         ValueError
             If required attributes such as density data, opacities, or mass are not initialized.
 
-        Updates
-        -------
-        self.src_fn : float or ndarray
-            The effective source function used in radiative transfer integration.
-
-        self.intensity : ndarray
-            2D array of emergent intensity for each (x, y) column.
-
-        self.observed_mass : float
-            The dust mass inferred under the assumption of optically thin emission.
-
-        self.mass_excess : float
-            The true mass divided by the observed mass. A value > 1 indicates underestimation.
-
         Returns
         -------
         None
-            Results are stored in object attributes.
+            The following attributes are updated:
+
+            - `self.src_fn` : float or ndarray
+                The effective source function used in radiative transfer integration.
+            - `self.intensity` : ndarray
+                2D array of emergent intensity for each (x, y) column.
+            - `self.observed_mass` : float
+                The dust mass inferred under the assumption of optically thin emission.
+            - `self.mass_excess` : float
+                The true mass divided by the observed mass. A value > 1 indicates underestimation.
         """
 
         # Validate
@@ -821,15 +809,13 @@ class density_cube:
         ValueError
             If `stoke` or `grain_rho` is not set, non-positive, or if their lengths mismatch in the polydisperse case.
 
-        Updates
-        -------
-        self.grain_size : float or ndarray
-            Computed grain size(s) in cm.
-
         Returns
         -------
         None
-            The result is stored in `self.grain_size`.
+            The computed grain sizes are stored in the following attribute:
+
+            - `self.grain_size` : float or ndarray
+                Computed grain size(s) in cm.
         """
 
         # Validate
@@ -875,21 +861,17 @@ class density_cube:
         ValueError
             If `grain_size` or `wavelength` is not set or invalid (implicitly by the underlying function in the compute_opacities module).
 
-        Updates
-        -------
-        self.kappa : float or ndarray
-            Absorption opacity coefficient(s) (cm²/g).
-
-        self.sigma : float or ndarray
-            Scattering opacity coefficient(s) (cm²/g).
-
-        self.grain_size_bins : ndarray
-            Array of grain size bin edges used in the binned approximation.
-
         Returns
         -------
         None
-            Results are stored in instance attributes.
+            Updates the following attributes in place:
+
+            - `self.kappa` : float or ndarray
+                Absorption opacity coefficient(s) (cm²/g).
+            - `self.sigma` : float or ndarray
+                Scattering opacity coefficient(s) (cm²/g).
+            - `self.grain_size_bins` : ndarray
+                Grain size bin edges used in the binned opacity approximation.
         """
 
         # Grain size, absorption opacity, and scattering opacity -- from DSHARP project. Note that the bin_approx determines whether the simulation is polydisperse.       
@@ -926,15 +908,13 @@ class density_cube:
         ValueError
             If required attributes (`eps_dtog`, `mass`, `rhopswarm`, `aps`, `npar`) are not defined.
 
-        Updates
-        -------
-        self.proto_mass : float or ndarray
-            Sorted array of planetesimal masses (g), or 0 if none are found.
-
         Returns
         -------
         None
-            Computed values are stored in `self.proto_mass`.
+            The resulting clump masses are stored in the `self.proto_mass` attribute:
+
+            - `self.proto_mass` : float or ndarray
+                Sorted array of clump masses in grams, or 0 if no clumps are detected.
         """
 
         # Validate required inputs
