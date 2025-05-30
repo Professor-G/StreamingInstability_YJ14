@@ -15,108 +15,119 @@ import numpy as np
 
 from StreamingInstability_YJ14 import compute_opacities
 
+# REPO
+
 class density_cube:
     """
-    Class for a density cube object. This class performs radiative transfer calculations along the z-axis of a 3D cube,
-    enabling the analysis of protoplanetary disk properties under a range of physical conditions. If no dust opacity
-    coefficients (kappa and/or sigma) are provided, the opacities will be estimated using the DSHARP project coefficients 
-    (Birnstiel et al., 2018; https://iopscience.iop.org/article/10.3847/2041-8213/aaf743/pdf). 
+    Class for radiative transfer through a 3D dust density cube and for computing the mass excess.
 
-    Note:
-        This analysis assumes a cubic domain (symmetrical along each axis).
+    This class computes the optical depth and outgoing intensity through a
+    protoplanetary disk model by performing radiative transfer along the z-axis
+    of a 3D density cube. It supports both monodisperse and polydisperse dust
+    distributions and can automatically compute dust opacities using the
+    DSHARP model (Birnstiel et al. 2018) if they are not provided.
 
-    Args:
-        data (ndarray): Simulation Data. The 3D density data cube, containing dust particle density (rhop attribute). Defaults to None in 
-            which case the particle densities for a single snapshop of a streaming instability simulation (Yang+14) will 
-            be loaded, for testing purposes.
-        axis (ndarray): Simulation Data. The 1D array of the axis along which to integrate (x, y, or z attribute -- cubic domain is assumed).
-            This should be in units of gas scale height, the default when running SI simulations using the Pencil Code.
-            Defaults to None in which case the z-axis from pre-saved model will be loaded, for testing purposes.
-        code_rho (float): Data Normalization. Midplane gas density in code units (rho0 param in the start.in file, under &eos_init_pars), used to convert 
-            data cube to cgs units. Defaults to 1.
-        code_cs (float): Data Normalization. The sound speed of the gas in code units (cs0 param in the start.in file, under &eos_init_pars), used to convert 
-            data cube to cgs units. Defaults to 2pi.
-        code_omega (float): Data Normalization. The Keplerian orbital timescale in code units (Omega param the start.in file, under &hydro_init_pars), used to 
-            convert data cube to cgs units. Defaults to 2pi.
-        column_density (float): Disk Parameter. Column density of the gas in cgs units. Defaults to 100 (g / cm^2).
-        T (float): Disk Parameter. Temperature of the entire box in cgs units, as we assume isothermality. Defaults to 30 (K).
-        H (float): Disk Parameter. The scale height of the box, in cgs units. Defaults to 5 (au) ~ 7.5e13 (cm)
-        stoke (float or ndarray): Dust Grain Parameter. Stokes number of the dust species present in the model. Must either be a float for 
-            monodisperse simulations or an array containing one value for each species if the model is polydisperse.
-        grain_rho (float): Dust Grain Parameter. Internal dust grain density, in cgs units. A value of 1 (g / cm^3) is typical for ices, 
-            and 3.5 (g / cm^3) for silicates. This input can either be a float for monodisperse simulations or 
-            an array containing one value for each species in the case of polydisperse models. Will be used to compute 
-            the grain size according to the input Stokes number(s) gas column density. Defaults to None, which assumes
-            a grain density of 1.675 (g / cm^3) for all grains, the density used in the DSHARP dust model.
-        wavelength (float): Radiative Transfer Parameter. The wavelength at which to calculate the opacities, in cm. Value can range from 1e-5 to 10 cm.
-            Defaults to 0.1 cm.        
-        include_scattering (bool): Radiative Transfer Parameter. Whether the scattering opacities should be considered in the radiative transfer. Defaults to False,
-            which calculates (if applicable) and employs only the absorption opacities. 
-        kappa (float): Radiative Transfer Parameter. Dust absorption opacity coefficient in cgs units (cm^2 / g). Must either be a float for monodisperse 
-            simulations or an array containing one value for each species if the model is polydisperse. If set to None, the
-            dust absorption opacity will be calculated according to column density and grain size(s), using the DSHARP dust model
-            from Birnstiel+18. Defaults to None.
-        sigma (float): Radiative Transfer Parameter. Dust scattering opacity coefficient, in cgs units (cm^2 / g). Must either be a float for monodisperse 
-            simulations or an array containing one value for each species if the model is polydisperse. If set to None, the
-            dust scattering opacity will be calculated according to column density and grain size(s), using the DSHARP dust model
-            from Birnstiel+18. Defaults to None.
-        q (float): Radiative Transfer Parameter. The power law of the grain size distribution, n(a) scales with a^(-q) where a is the grain size. Defaults to 2.5 which
-            is typical for protoplanetary disk environments (~ Class I/II).
-        npar (int): Polydisperse Radiative Transfer Parameter. Number of particles in the simulation, used to calculate the density-weighted opacities if the model is polydisperse. 
-            It is also used to calculate the mass of protoplanets if the model is self-gravitating (optional). Defaults to one million.
-        ipars (ndarray, optional): Polydisperse Radiative Transfer Parameter. The grain identifier array stored in the pvar files as the ipars attribute. Should be input as np.array(fp.ipars, dtype=int).
-            Defaults to None. It's only used to compute the weighted opacities when the simulation is polydisperse.
-        xp (ndarray, optional): Polydisperse Radiative Transfer Parameter. The x-position of the grains corresponding to the ipars array, saved as the xp attribute in the pvar files.
-            Defaults to None. It's only used to compute the weighted opacities when the simulation is polydisperse.
-        yp (ndarray, optional): Polydisperse Radiative Transfer Parameter. The x-position of the grains corresponding to the ipars array, saved as the xp attribute in the pvar files.
-            Defaults to None. It's only used to compute the weighted opacities when the simulation is polydisperse.
-        zp (ndarray, optional): Polydisperse Radiative Transfer Parameter. The z-position of the grains corresponding to the ipars array, saved as the zp attribute in the pvar files.
-            Defaults to None. It's only used to compute the weighted opacities when the simulation is polydisperse.
-        xgrid (ndarray, optional): Polydisperse Radiative Transfer Parameter. The x-coordinates of grid nodes, used to compute the weighted opacities when the simulation is polydisperse. 
-            Saved as the x attribute in read_grid(). Defaults to None.
-        ygrid (ndarray, optional): Polydisperse Radiative Transfer Parameter. The y-coordinates of grid nodes, used to compute the weighted opacities when the simulation is polydisperse. 
-            Saved as the y attribute in read_grid(). Defaults to None.
-        zgrid (ndarray, optional): Polydisperse Radiative Transfer Parameter. The z-coordinates of grid nodes, used to compute the weighted opacities when the simulation is polydisperse. 
-            Saved as the z attribute in read_grid(). Defaults to None.
-        aps (ndarray, optional): Self-Gravity Parameter. The azimuthal particle positions (pvar.aps) from the Pencil Code simulation. Used for calculating the mass 
-            distribution of protoplanets by integrating over azimuthal regions. Must be input to enable protomass calculation. Defaults to None.
-        rhopswarm (ndarray, optional): Self-Gravity Parameter. The swarm density (pvar.rhopswarm) from the Pencil Code simulation. Must be input to enable protomass calculation. 
-            Represents the local density of particle swarms, used to compute the total mass of dense clumps in the simulation domain. Defaults to None.
-        eps_dtog (float, optional): Self-Gravity Parameter. Dust-to-gas ratio, used to calculate the mass of the protoplanets if the model is self-gravitating. Defaults to None.
-        init_var (ndarray, optional): Self-Gravity Parameter. The 3D density cube of the first (initial) snapshot so that the initial mass of the cube is known and used
-            for the mass excess calculations. This is only applicable if the simulation includes self-gravity as the dust mass inside the box will decrease
-            as sink particles are formed and accrete. Defaults to None.
+    It also computes the mass excess — defined as the ratio of the true dust mass in the cube
+    to the mass inferred from the observed intensity under the assumption of optically thin emission.
+    This metric quantifies how much disk mass may be underestimated in observations due to
+    optically thick regions.
+
+    Note
+    ----
+    - The current version of the code assumes that the cube is symmetric along all axes (i.e., cubic domain).
+    - If no input data is provided, a default test dataset from a streaming
+      instability simulation by Yang & Johansen (2014) is used. This is a snapshot at orbit 100.
+
+    Parameters
+    ----------
+    data : ndarray, optional
+        3D dust density cube (e.g., rhop field). Defaults to test data if None.
+    axis : ndarray, optional
+        1D coordinate array along the integration axis (typically `z`), in units of gas scale height.
+    code_rho : float, optional
+        Midplane gas density in code units (`rho0` in `start.in`). Default is 1.
+    code_cs : float, optional
+        Sound speed in code units (`cs0` in `start.in`). Default is 2π.
+    code_omega : float, optional
+        Orbital frequency in code units (`Omega` in `start.in`). Default is 2π.
+    column_density : float, optional
+        Gas column density in cgs units (g/cm²). Default is 100.
+    T : float, optional
+        Isothermal box temperature (K). Default is 30.
+    H : float, optional
+        Pressure scale height (cm). Default is 7.5e13 (≈ 5 AU).
+    stoke : float or ndarray
+        Stokes number(s) for the dust population.
+    grain_rho : float or ndarray, optional
+        Internal grain density (g/cm³). If None, defaults to 1.675.
+    wavelength : float, optional
+        Wavelength at which opacities are computed (cm). Range: 1e-5 to 10. Default is 0.1.
+    include_scattering : bool, optional
+        If True, include scattering opacity in radiative transfer. Default is False.
+    kappa : float or ndarray, optional
+        Dust absorption opacity (cm²/g). If None, computed from DSHARP.
+    sigma : float or ndarray, optional
+        Dust scattering opacity (cm²/g). If None, computed from DSHARP.
+    q : float, optional
+        Power-law index for grain size distribution (n(a) ∝ a^{-q}). Default is 2.5.
+    npar : int, optional
+        Number of particles in simulation (used for weighting). Default is 1,000,000.
+    ipars, xp, yp, zp : ndarray, optional
+        Particle species and positions (used in polydisperse opacity calculations).
+    xgrid, ygrid, zgrid : ndarray, optional
+        Grid coordinates used to bin particles into grid cells for opacity weighting.
+    aps : ndarray, optional
+        Azimuthal positions of particles for proto-mass calculation.
+    rhopswarm : ndarray, optional
+        Local swarm densities used in proto-mass calculation.
+    eps_dtog : float, optional
+        Dust-to-gas ratio used to estimate proto-masses.
+    init_var : ndarray, optional
+        Initial density cube for mass excess calculation.
+
+    Attributes
+    ----------
+    axis : ndarray
+        The 1D coordinate array corresponding to the integration axis (typically z), in units of gas scale height.
+    data : ndarray
+        The 3D dust density cube (rhop field), used for radiative transfer.
+    filling_factor : float
+        Fraction of pixels with τ > 1 (optically thick columns).
+    grain_size : float or ndarray
+        Derived grain size(s) based on Stokes number(s).
+    H : float
+        Gas pressure scale height of the box (cm).
+    intensity : ndarray
+        Outgoing intensity map computed along the z-axis.
+    mass : float
+        Total dust mass in the cube (g).
+    mass_excess : float
+        Ratio of true dust mass to inferred dust mass (from the (sub-mm) intensity).
+    proto_mass : float
+        Total mass in gravitationally bound clumps, if self-gravity is included.
+    tau : ndarray
+        Optical depth map computed along the z-axis.
     
-    Attributes:
-        mass (float): Total mass of the box in cgs units.
-        mass_excess (float): Ratio of true box mass to observed mass (underestimation factor).
-        intensity (ndarray): Outgoing intensity integrated along the z-axis.
-        tau (ndarray): Optical depth map integrated along the z-axis.
-        filling_factor (float): Fraction of columns that are optically thick (self.tau > 1).
-        grain_size (float or ndarray): Calculated grain size(s) based on Stokes number and grain density.
-        proto_mass (float): Mass of protoplanets in the simulation, if self-gravity is enabled.
-    
-    Methods:
-        configure():
-            Initializes key parameters and attributes, including density normalization, box mass, and opacity calculations.
-            Re-run this method if any disk or radiative transfer parameters are updated.
-        blackbody():
-            Calculates the blackbody spectral radiance of the source using Planck's law, given the cube's temperature.
-        calc_tau():
-            Computes the optical depth (self.tau) along the z-axis for all columns of the cube.
-        calc_t(rhod, effective_kappa, effective_sigma):
-            Computes the cumulative optical depth along a single column, integrating from the base to the given height, z.
-        calc_intensity():
-            Solves the radiative transfer equation to compute the outgoing intensity along the z-axis for all columns.
-        calc_mass_excess():
-            Calculates the ratio of the true box mass to the observed mass (mass excess), based on the computed intensity.
-        calc_grain_size():
-            Determines grain size(s) based on the Stokes number and gas column density.
-        extract_opacity():
-            Retrieves dust opacity coefficients (kappa, sigma) for the given grain size(s), based on the DSHARP model.
-        get_proto_mass():
-            Estimates the mass of protoplanets in self-gravitating simulations, based on the particle positions and densities.
-
+    Methods
+    -------
+    configure()
+        Initializes internal attributes and computes opacity if not provided.
+    blackbody()
+        Computes blackbody intensity from Planck's law at temperature T.
+    calc_tau()
+        Computes the optical depth τ across the cube.
+    calc_t(rhod, kappa, sigma)
+        Computes cumulative τ along one vertical column.
+    calc_intensity()
+        Solves the radiative transfer equation along the z-axis.
+    calc_mass_excess()
+        Calculates the dust mass underestimation factor.
+    calc_grain_size()
+        Converts Stokes number(s) into physical grain size(s).
+    extract_opacity()
+        Computes opacities using DSHARP tables.
+    get_proto_mass()
+        Estimates mass in bound clumps (protoplanets) using swarm density and azimuthal info.
     """
 
     # Type hints
@@ -219,7 +230,7 @@ class density_cube:
                 raise ValueError('The include_scattering parameter is enabled but no absorption coefficient (kappa) was provided!')
 
         if self.data is None:
-            print('No data input, loading density cube from Yang+14 paper, snapshot taken at orbit 100...')
+            print('No data input, loading density cube from Yang & Johansen (2014), snapshot taken at orbit 100...')
             self.data, self.axis = load_cube()
 
         # Additional Attributes
@@ -235,22 +246,51 @@ class density_cube:
 
     def configure(self):
         """
-        Initializes and configures parameters for the density cube object, including mass, optical depth, 
-        and opacity coefficients. This method should be re-run if key parameters such as `sigma`, `H`, or 
-        grid spacing (`dx/dy/dz`) are updated.
+        Initialize and configure physical parameters for the density cube object.
 
-        Updates:
-            - self.Lx, self.Ly, self.Lz: Dimensions of the cube (cm).
-            - self.mass: Total mass of the cube (cgs units).
-            - self.unit_mass, self.unit_density: Unit conversion factors (code to cgs units).
-            - self.data: Density cube converted to cgs units.
-            - self.frequency: Frequency corresponding to the analysis wavelength (Hz).
-            - self.mass_excess: Ratio of true to observed mass.
-            - self.tau: Optical depth (computed later).
-            - self.proto_mass: Mass of protoplanets (if `aps` and `rhopswarm` are provided).
+        This method performs unit conversions, sets up spatial dimensions,
+        computes the total mass of the cube in cgs units, and prepares
+        quantities required for radiative transfer and mass excess analysis.
 
-        Returns:
-            None.
+        It must be re-run if key inputs—such as the scale height `H`, the 
+        absorption/scattering opacities (`kappa`, `sigma`), or grid spacing (`axis`)—
+        are updated.
+
+        Raises
+        ------
+        ValueError
+            If `self.data` or `self.axis` are not set prior to calling this method.
+
+        Updates
+        -------
+        self.Lx, self.Ly, self.Lz : float
+            Physical dimensions of the cube (cm).
+        self.dx, self.dy, self.dz : float
+            Grid cell spacing (cm).
+        self.mass : float
+            Total dust mass in the cube (g).
+        self.unit_mass : float
+            Conversion factor from code mass units to cgs (g).
+        self.unit_density : float
+            Conversion factor from code density units to cgs (g/cm³).
+        self.unit_sigma : float
+            Conversion factor for dust surface density (g/cm²).
+        self.data : ndarray
+            Density cube converted to cgs units (g/cm³).
+        self.frequency : float
+            Frequency corresponding to the given wavelength (Hz).
+        self.mass_excess : float
+            Ratio of true dust mass to inferred dust mass from intensity
+            (under the assumption of optically thin emission).
+        self.tau : ndarray
+            Optical depth map computed later during radiative transfer.
+        self.proto_mass : float
+            Total protoplanet mass, if `aps` and `rhopswarm` are provided.
+
+        Returns
+        -------
+        None
+            This method updates internal attributes in place.
         """
 
         # Data configuration check
@@ -301,37 +341,76 @@ class density_cube:
 
     def blackbody(self):
         """
-        Computes the blackbody spectral radiance using Planck's law for a source in thermal equilibrium 
-        at a temperature `T`. Absorption only should be
+        Compute the blackbody spectral radiance using Planck's law.
 
-        Returns:
-            None. Assigns the `B_nu` attribute, the spectral radiance in units of erg s⁻¹ cm⁻² Hz⁻¹ steradian⁻¹.
+        This method calculates the specific intensity (spectral radiance) of a blackbody
+        at temperature `T` and frequency `self.frequency`, assuming pure absorption
+        (i.e., no scattering contribution). The result is stored in `self.B_nu`.
+
+        Raises
+        ------
+        ValueError
+            If `self.frequency` or `self.T` is not set, or if `T <= 0`.
+
+        Returns
+        -------
+        None
+            Updates the `self.B_nu` attribute with the spectral radiance
+            in units of erg s⁻¹ cm⁻² Hz⁻¹ sr⁻¹.
         """
 
         # Validate inputs
         if self.frequency is None or self.T is None: raise ValueError("Both `frequency` and `T` must be defined before calling the `blackbody()` method.")
         if self.T <= 0: raise ValueError("Temperature (`T`) must be positive!")
 
-        #hf = const.h.cgs.value * self.frequency
-        #kT = const.k_B.cgs.value * self.T
-        #c2 = const.c.cgs.value**2
-
         self.B_nu = 2 * const.h.cgs.value * self.frequency**3 / (const.c.cgs.value**2 * (np.exp(const.h.cgs.value * self.frequency / (const.k_B.cgs.value * self.T)) - 1))
-        #self.B_nu = 2 * hf**3 / (c2 * (np.exp(hf / kT) - 1))
 
         return
 
     def calc_tau(self):
         """
-        Computes the optical depth (`self.tau`) for each column in the density cube by integrating along the z-axis.
+        Compute the optical depth map (`self.tau`) by integrating along the z-axis of the density cube.
 
-        Notes:
-            - `self.data` should contain the dust density in cgs units.
-            - `self.dz` should be the grid spacing in cm.
-            - For polydisperse cases, grain positions and grid coordinates must be defined.
+        For monodisperse simulations, a uniform opacity coefficient is applied throughout.
+        For polydisperse simulations, species-specific densities are reconstructed in 3D,
+        and local weighted opacity coefficients are calculated at each cell using the particle data.
 
-        Returns:
-            None. Assigns the `self.tau` and `filling_factor`` attributes.
+        This method updates `self.tau` for all (x, y) columns and computes the `self.filling_factor`,
+        defined as the fraction of columns with optical depth τ ≥ 1.
+
+        Notes
+        -----
+        - `self.data` must be in cgs units (g/cm³).
+        - `self.dz` must be the vertical grid spacing in cm.
+        - `self.kappa` (absorption opacity) is required.
+        - If `include_scattering` is True, `self.sigma` (scattering opacity) must also be provided.
+        - For polydisperse simulations:
+            - `self.grain_size` must be an array.
+            - `self.ipars`, `self.xp`, and `self.xgrid` must be defined to compute density per species.
+
+        Raises
+        ------
+        ValueError
+            If required attributes (`self.data`, `self.dz`, `self.kappa`, etc.) are not defined.
+            If any necessary polydisperse inputs are missing.
+
+        Updates
+        -------
+        self.tau : ndarray
+            2D optical depth map integrated along the z-axis for each (x, y) column.
+        self.filling_factor : float
+            Fraction of columns with τ ≥ 1 (optically thick).
+        self.effective_kappa : ndarray
+            3D array of locally averaged absorption opacities (polydisperse only).
+        self.effective_sigma : ndarray
+            3D array of locally averaged scattering opacities (if `include_scattering=True`).
+        self.density_per_species : ndarray
+            4D array of species-separated dust density grids (polydisperse only).
+
+        Returns
+        -------
+        None
+            All values are stored in object attributes.
         """
 
         # Validate
@@ -417,21 +496,37 @@ class density_cube:
 
     def calc_t(self, rhod, effective_kappa, effective_sigma):
         """
-        Computes the cumulative optical depth along a single column, integrating from the base to a given height z.
-        This is the optical depth as emission progresses up the column, where as the optical_depth() function calculates
-        along the entire column. 
-    
-        Notes:
-            - The grid spacing `self.dz` is assumed to be in cm.
-            - All input arrays must have the same length as the number of vertical cells (`self.Nz`).
+        Compute the cumulative optical depth along a single vertical column.
 
-        Args:
-            rhod (ndarray): 1D array of dust densities along the column (units: g/cm³).
-            effective_kappa (ndarray): 1D array of absorption opacities along the column (units: cm²/g).
-            effective_sigma (ndarray): 1D array of scattering opacities along the column (units: cm²/g).
+        This method integrates the optical depth from the bottom of the cube (z = 0)
+        upward to each height `z`, returning a 1D array of cumulative τ values.
+        Unlike `calc_tau`, which computes total τ for an entire column, this returns
+        the depth-dependent progression of optical depth as a function of height.
 
-        Returns:
-            ndarray: 1D array of cumulative optical depth values at each height z (unitless).
+        Parameters
+        ----------
+        rhod : ndarray
+            1D array of dust mass densities along the vertical column (g/cm³).
+        effective_kappa : ndarray
+            1D array of absorption opacity coefficients along the column (cm²/g).
+        effective_sigma : ndarray
+            1D array of scattering opacity coefficients along the column (cm²/g).
+
+        Notes
+        -----
+        - All input arrays must be 1D and of length `self.Nz`.
+        - The grid spacing `self.dz` is assumed to be in cm and must be positive.
+
+        Raises
+        ------
+        ValueError
+            If input arrays are not 1D or do not match the vertical grid size `self.Nz`,
+            or if `self.dz` is not positive.
+
+        Returns
+        -------
+        t : ndarray
+            1D array of cumulative optical depth values at each vertical cell (unitless).
         """
 
         # Validate inputs
@@ -450,19 +545,40 @@ class density_cube:
 
     def calc_intensity(self):
         """
-        Calculates the outgoing intensity along the z-axis for all columns in the cube using the radiative transfer equation.
-        
-        This method implements the general solution for radiative transfer (RT) equation, assuming no back-illumination.
-        It calculates the emissivity and integrates it along the column, taking into account optical depth and 
-        scattering (if enabled). #Compute the bolometric flux
-        
-        Note:
-            - The integration assumes the first term of the RT solution (extinction of original intensity) is zero.
-            - This method is optimized for polydisperse simulations, but supports monodisperse cases as well.
-            - Units of intensity are consistent with the input source function `self.B_nu`.
+        Compute the outgoing intensity along the z-axis for all (x, y) columns.
 
-        Returns:
-            None. Assigns the `intensity` attribute. 
+        This method solves the radiative transfer equation using the emissivity
+        term only, assuming no incident intensity at the base (i.e., no
+        back-illumination). It integrates the column-wise emissivity weighted
+        by the exponential attenuation factor exp(−τ) to determine the observed
+        intensity at the top of the cube.
+
+        Scattering is included if `self.include_scattering` is True, in which
+        case the mean intensity `self.J` is also used in the emissivity term.
+        Supports both monodisperse and polydisperse models.
+
+        Notes
+        -----
+        - Requires `self.tau` to be precomputed using `calc_tau()`.
+        - Assumes that `self.data` contains dust density in cgs units (g/cm³).
+        - Assumes Planck function (`self.B_nu`) is constant along each column.
+        - The returned intensity is in units of erg s⁻¹ cm⁻² Hz⁻¹ sr⁻¹.
+        - If scattering is enabled, `self.effective_sigma` and `self.J` must be defined.
+
+        Raises
+        ------
+        ValueError
+            If required attributes such as `self.data`, `self.tau`, or opacity arrays are missing or have incorrect shapes.
+
+        Updates
+        -------
+        self.intensity : ndarray
+            2D map of outgoing specific intensity at the top of the cube for each (x, y) position.
+
+        Returns
+        -------
+        None
+            Computed values are stored in `self.intensity`.
         """
 
         # Validate 
@@ -513,15 +629,49 @@ class density_cube:
         
     def calc_mass_excess(self):
         """
-        Calculates the mass underestimation (mass_excess) for the dust density cube.
+        Calculate the mass underestimation factor ("mass excess") for the dust density cube.
 
-        This method computes the optical depth map, evaluates the outgoing intensity 
-        using radiative transfer, and calculates the observed dust mass based on the 
-        assumptions of optically thin emission. It then compares the observed mass 
-        with the true mass of the cube to estimate the mass excess factor.
+        This method solves the radiative transfer equation along each column, calculates
+        the outgoing intensity, and derives the observed dust mass assuming optically thin
+        emission. The ratio of the true dust mass to the inferred dust mass is stored
+        as `self.mass_excess`, quantifying how much mass is missed due to optically
+        thick regions or scattering.
 
-        Returns:
-            None. Assigns the mass underestimation factor, `self.mass_excess`.
+        Scattering is handled via a two-stream approximation (Miyake & Nakagawa 1993; Zhu et al. 2019),
+        which modifies the source function. Supports both monodisperse and polydisperse models.
+
+        Notes
+        -----
+        - Requires `self.kappa` to be defined. If `include_scattering=True`, `self.sigma` is also required.
+        - The cube must be configured first with `configure()`, which sets `self.mass` and grid info.
+        - The outgoing intensity is computed using `calc_intensity()`, based on the full RT solution.
+        - Assumes thermal equilibrium (LTE) and no external illumination (I₀ = 0).
+        - For polydisperse simulations, the average opacity assumed in the optically thin approximation
+          is taken to be the mean of the absorption opacities across species.
+
+        Raises
+        ------
+        ValueError
+            If required attributes such as density data, opacities, or mass are not initialized.
+
+        Updates
+        -------
+        self.src_fn : float or ndarray
+            The effective source function used in radiative transfer integration.
+
+        self.intensity : ndarray
+            2D array of emergent intensity for each (x, y) column.
+
+        self.observed_mass : float
+            The dust mass inferred under the assumption of optically thin emission.
+
+        self.mass_excess : float
+            The true mass divided by the observed mass. A value > 1 indicates underestimation.
+
+        Returns
+        -------
+        None
+            Results are stored in object attributes.
         """
 
         # Validate
@@ -643,17 +793,43 @@ class density_cube:
 
     def calc_grain_size(self):
         """
-        Calculates the grain size(s) based on the Stokes number and gas column density.
+        Compute the grain size(s) from the Stokes number and gas column density.
 
-        This method computes the grain size(s) using the formula:
+        This method uses the Stokes–Epstein drag relation to calculate the physical grain size `a`
+        corresponding to a given Stokes number `St`, assuming all grains are in the Epstein regime.
+        For monodisperse models, a single value is returned; for polydisperse models, an array of
+        grain sizes is computed based on the per-species Stokes number and internal grain density.
 
-            a = St * (2 * Σ_g) / (π * ρ_g),
+        The grain size is given by:
 
-        where `a` is the grain size, `St` is the Stokes number, `Σ_g` is the gas column density,
-        and `ρ_g` is the internal dust grain density.
+            a = (St * 2 * Σ_g) / (π * ρ_g)
 
-        Returns:
-            None. Assigns the `grain_size` attribute.
+        where:
+          - `a` is the grain size (cm),
+          - `St` is the Stokes number (dimensionless),
+          - `Σ_g` is the gas column density (g/cm²),
+          - `ρ_g` is the internal grain density (g/cm³).
+
+        Notes
+        -----
+        - Assumes Epstein drag regime is valid.
+        - For polydisperse simulations, both `stoke` and `grain_rho` must be arrays of equal length.
+        - Requires `self.column_density` > 0.
+
+        Raises
+        ------
+        ValueError
+            If `stoke` or `grain_rho` is not set, non-positive, or if their lengths mismatch in the polydisperse case.
+
+        Updates
+        -------
+        self.grain_size : float or ndarray
+            Computed grain size(s) in cm.
+
+        Returns
+        -------
+        None
+            The result is stored in `self.grain_size`.
         """
 
         # Validate
@@ -679,14 +855,41 @@ class density_cube:
 
     def extract_opacity(self):
         """
-        Extracts the opacity coefficients (`kappa`, `sigma`) based on the grain size(s).
+        Compute and assign dust opacity coefficients using the DSHARP model.
 
-        This method computes the absorption (`kappa`) and scattering (`sigma`) opacity coefficients 
-        for the dust grain sizes in the simulation. The coefficients are calculated using the 
-        DSHARP model (Birnstiel et al., 2018).
+        This method calculates the absorption (`kappa`) and scattering (`sigma`) opacity
+        coefficients based on the dust grain sizes in the simulation. Opacities are derived
+        using the DSHARP dust opacity tables (Birnstiel et al. 2018), which assume a fixed
+        internal grain composition and density.
 
-        Returns:
-            None. Assigns the `kappa`, `sigma`, and `grain_size_bins` attributes.
+        For polydisperse simulations (`grain_size` is an array), the method computes 
+        opacity values using a binned approximation consistent with the multi-species model.
+
+        Notes
+        -----
+        - The `grain_size` and `wavelength` attributes must be set prior to calling this method.
+        - The method internally calls the compute_opacities module (`compute_opacities.dsharp_model()`).
+
+        Raises
+        ------
+        ValueError
+            If `grain_size` or `wavelength` is not set or invalid (implicitly by the underlying function in the compute_opacities module).
+
+        Updates
+        -------
+        self.kappa : float or ndarray
+            Absorption opacity coefficient(s) (cm²/g).
+
+        self.sigma : float or ndarray
+            Scattering opacity coefficient(s) (cm²/g).
+
+        self.grain_size_bins : ndarray
+            Array of grain size bin edges used in the binned approximation.
+
+        Returns
+        -------
+        None
+            Results are stored in instance attributes.
         """
 
         # Grain size, absorption opacity, and scattering opacity -- from DSHARP project. Note that the bin_approx determines whether the simulation is polydisperse.       
@@ -696,20 +899,42 @@ class density_cube:
 
     def get_proto_mass(self):
         """
-        Calculates the mass of the protoplanets (planetesimals) based on dust-to-gas ratio,
-        local swarm density, and azimuthal particle positions.
+        Estimate the masses of protoplanets (planetesimal clumps) from local particle densities.
 
-        The method computes the planetesimal masses using the formula:
+        This method calculates the mass of planetesimal clumps based on the local swarm density
+        (`rhopswarm`), azimuthal particle positions (`aps`), and the total box dust mass.
+        The particle mass is inferred from the total number of particles and the global dust-to-gas ratio.
 
-            M_p = 10^(log10(N_clump) + log10(M_particle)),
+        Clumps are identified via non-zero azimuthal particle positions, and individual clump masses
+        are computed as:
 
-        where `N_clump` is the number of particles in a clump (scaled by the swarm density),
-        and `M_particle` is the particle mass derived from the dust-to-gas ratio.
+            M_p = 10 ** [log10(N_clump) + log10(M_particle)]
 
-        If no planetesimals are found, the `proto_mass` attribute is set to zero.
+        where:
+        - `N_clump` is the number of particles in a given clump (estimated from density),
+        - `M_particle` is the dust mass per particle.
 
-        Returns:
-            None. Assigns the `proto_mass` attribute.
+        Notes
+        -----
+        - Requires `configure()` to have been run (sets `self.mass`).
+        - Assumes that `rhopswarm` is proportional to the number of particles per grid cell.
+        - Returns clump masses in cgs units (g), sorted in ascending order.
+        - If no clumps are found, `self.proto_mass` is set to 0.
+
+        Raises
+        ------
+        ValueError
+            If required attributes (`eps_dtog`, `mass`, `rhopswarm`, `aps`, `npar`) are not defined.
+
+        Updates
+        -------
+        self.proto_mass : float or ndarray
+            Sorted array of planetesimal masses (g), or 0 if none are found.
+
+        Returns
+        -------
+        None
+            Computed values are stored in `self.proto_mass`.
         """
 
         # Validate required inputs
@@ -744,39 +969,57 @@ class density_cube:
         return
 
 
-def particles_to_density(xp, yp, zp, x, y, z, rhop_swarm=6.30813659928, grid_func1='linear', grid_func2='linear', grid_func3='linear',
-    mx=262, my=262, mz=262, nx=256, ny=256, nz=256, n1=3, n2=258, m1=3, m2=258, l1=3, l2=258, density=True):
+def particles_to_density(
+    xp, yp, zp,
+    x, y, z,
+    rhop_swarm=6.30813659928,
+    grid_func1='linear', grid_func2='linear', grid_func3='linear',
+    mx=262, my=262, mz=262, nx=256, ny=256, nz=256,
+    n1=3, n2=258, m1=3, m2=258, l1=3, l2=258,
+    density=True):
     """
-    Convert particle positions and weights to a density field on a grid.
-    Author: Wladimir Lyra (adapted from Anders Johansen's IDL script) 
+    Deposit particles onto a 3D grid to generate a dust density field.
 
-    Parameters:
-        xp (array-like): x-coordinates of particles. Saved as the xp attribute in the pvar files.
-        yp (array-like): y-coordinates of particles. Saved as the yp attribute in the pvar files.
-        zp (array-like): z-coordinates of particles. Saved as the zp attribute in the pvar files.
-        x (array-like): x-coordinates of grid nodes. Saved as the x attribute in read_grid().
-        y (array-like): y-coordinates of grid nodes. Saved as the y attribute in read_grid().
-        z (array-like): z-coordinates of grid nodes. Saved as the z attribute in read_grid().
-        rhop_swarm (array-like or float): Density or weight of each particle, saved as the rhop_swarm attribute in read_param().
-        grid_func1 (str, optional): Interpolation method for x-axis. Default is 'linear'. Saved as the grid_func[0] attribute in read_param().
-        grid_func2 (str, optional): Interpolation method for y-axis. Default is 'linear'. Saved as the grid_func[1] attribute in read_param().
-        grid_func3 (str, optional): Interpolation method for z-axis. Default is 'linear'. Saved as the grid_func[2] attribute in read_param().
-        mx (int): Number of grid nodes in x-direction. Saved as the mx attribute in read_dim().
-        my (int): Number of grid nodes in y-direction. Saved as the my attribute in read_dim().
-        mz (int): Number of grid nodes in z-direction. Saved as the mz attribute in read_dim().
-        nx (int): Number of interpolation points in x-direction. Saved as the nx attribute in read_dim().
-        ny (int): Number of interpolation points in y-direction. Saved as the ny attribute in read_dim().
-        nz (int): Number of interpolation points in z-direction. Saved as the nz attribute in read_dim().
-        n1 (int): Lower index of the grid in z-direction. Saved as the n1 attribute in read_dim().
-        n2 (int): Upper index of the grid in z-direction. Saved as the n2 attribute in read_dim().
-        m1 (int): Lower index of the grid in y-direction. Saved as the m1 attribute in read_dim().
-        m2 (int): Upper index of the grid in y-direction. Saved as the m2 attribute in read_dim().
-        l1 (int): Lower index of the grid in x-direction. Saved as the l1 attribute in read_dim().
-        l2 (int): Upper index of the grid in x-direction. Saved as the l2 attribute in read_dim().
-        density (bool, optional): If True, compute density; if False, compute weight. Default is True.
+    This function interpolates particle mass or count contributions onto a 3D mesh 
+    using a quadratic weighting scheme adapted from an IDL routine by Anders Johansen.
+    The method accounts for non-uniform grid spacing and allows interpolation weights 
+    to be computed using either particle mass (`rhop_swarm`) or uniform weighting.
 
-    Returns:
-        array-like: Density field on the specified grid.
+    Parameters
+    ----------
+    xp, yp, zp : array_like
+        Particle positions in x, y, and z (usually from simulation snapshots). Pencil Code stores these as attributes in the pvar files.
+    x, y, z : array_like
+        Grid node coordinates along x, y, and z axes, respectively. Pencil Code stores these as attributes in read_grid().
+    rhop_swarm : float or array_like, optional
+        Particle density or weight. If a float, all particles have the same weight;
+        if an array, must match length of xp. Default is 6.30813659928. Pencil Code stores this as attribute in read_param().
+    grid_func1, grid_func2, grid_func3 : {'linear'}, optional
+        Grid interpolation scheme for each axis. Only `'linear'` is currently supported. Pencil Code stores these as attributes in read_param().
+    mx, my, mz : int
+        Number of grid points in x, y, and z directions. Pencil code stores these as attributes in read_dim().
+    nx, ny, nz : int
+        Number of interpolation points in x, y, and z. Controls smoothing kernel width. Pencil code stores these as attributes in read_dim().
+    l1, l2, m1, m2, n1, n2 : int
+        Grid index limits along x (l), y (m), and z (n) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim().
+    density : bool, optional
+        If True, return a mass-weighted density field. If False, return particle count field. Default is True.
+
+    Returns
+    -------
+    ndarray
+        3D array of shape (n2 - n1 + 1, m2 - m1 + 1, l2 - l1 + 1), representing the deposited
+        density or particle count on the grid.
+
+    Notes
+    -----
+    - The interpolation uses a second-order accurate kernel based on Lyra's implementation.
+    - The resulting array excludes ghost zones as defined by index limits.
+    - Ensure `xp`, `yp`, `zp` fall within bounds of `x`, `y`, `z` to avoid edge errors.
+
+    References
+    ----------
+    - W. Lyra, private communication (adapted from IDL code by A. Johansen)
     """
 
     dx, dy, dz = np.gradient(x), np.gradient(y), np.gradient(z) 
@@ -847,15 +1090,32 @@ def particles_to_density(xp, yp, zp, x, y, z, rhop_swarm=6.30813659928, grid_fun
 
 def find_index_bisect(qpar, q):
     """
-    Find the index of the element in the sorted list q that is closest to the given qpar using binary search.
-    Author: Wladimir Lyra (adapted from Anders Johansen's IDL script) 
+    Find the index of the element in a sorted list closest to a target value using binary search.
 
-    Parameters:
-        qpar (float): The value to search for.
-        q (list of float): A sorted list of values to search within.
+    This function returns the index of the element in the sorted array `q` that is nearest 
+    to the target value `qpar`, using an efficient bisection method.
 
-    Returns:
-        int: The index of the element in the list q that is closest to qpar.
+    Parameters
+    ----------
+    qpar : float
+        The target value for which the nearest index is sought.
+
+    q : array_like
+        A 1D sorted array of floats (in ascending order) to search within.
+
+    Returns
+    -------
+    int
+        Index of the element in `q` closest to `qpar`.
+
+    Notes
+    -----
+    This method assumes that `q` is sorted in ascending order. If the array is not sorted,
+    the result is undefined.
+
+    References
+    ----------
+    Adapted from: Anders Johansen's IDL script (via Wladimir Lyra).
     """
 
     jl, ju = 0, len(q) - 1
@@ -875,13 +1135,21 @@ def find_index_bisect(qpar, q):
 
 def load_cube():
     """
-    Loads 256 x 256 x 256 density cube. Corresponds to one snapshot of a 100
-    period simulation of the streaming instability in a protoplanetary disk,
-    provided by Yang & Johansen (2014).
+    Load a 256×256×256 dust density cube from a simulation snapshot.
 
-    Returns:
-        The first output is the 3D array of the cube, the second output
-        is the axis array. This array can be used as either axis (z,y,x).
+    This function loads a 3D density cube corresponding to a single snapshot (orbit 100)
+    of a 100-orbit streaming instability simulation in a protoplanetary disk,
+    provided by Yang & Johansen (2014). The full cube is stored across two 
+    `.npy` files and is concatenated along the z-axis.
+
+    Returns
+    -------
+    data : ndarray
+        A 3D NumPy array of shape (256, 256, 256) representing the dust 
+        density cube.
+    axis : ndarray
+        A 1D NumPy array representing the spatial coordinates corresponding
+        to each axis (z, y, x) in code units.
     """
 
     resource_package = __name__
@@ -899,49 +1167,3 @@ def load_cube():
     data, axis = np.r_[density_cube_1, density_cube_2], np.loadtxt(file)
 
     return data, axis
-
-
-def load_opacity_values_old(q=None):
-    """
-    Loads the opacity values taken from the DSHARP project.
-
-    Note:
-        These coefficients correspond to the 1mm wavelength opacities only! This function has been
-        replaced with the compute_opacities module which allows for opacity calculations across
-        a wide range of wavelengths.
-
-    Args:
-        q (int, optional): The grain distribution power law index. If set to None the
-            single grain opacities will be used. Can be 2.5 or 3.5, in which case the opacities
-            will correspond to the maximum-grain size opacity from the distribution. Defaults to None. 
-
-    Returns:
-        Three arrays -- the grain size followed by the corresponding absorption and scattering opacities.
-    """
-
-    resource_package = __name__
-
-    if q is None:
-        resource_path = '/'.join(('data', 'a_single_opacities.txt'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        values = np.loadtxt(file)
-        a, k_abs, k_sca = values[:,0], values[:,1], values[:,2]
-    elif q == 2.5:
-        resource_path = '/'.join(('data', 'a_max_opacities.txt'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        values = np.loadtxt(file)
-        a, k_abs, k_sca = values[:,0], values[:,1], values[:,2]
-    elif q == 3.5:
-        resource_path = '/'.join(('data', 'a_max_opacities.txt'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        values = np.loadtxt(file)
-        a, k_abs, k_sca = values[:,0], values[:,3], values[:,4]
-    elif q == 4.0:
-        resource_path = '/'.join(('data', 'a_max_opacities.txt'))
-        file = pkg_resources.resource_filename(resource_package, resource_path)
-        values = np.loadtxt(file)
-        a, k_abs, k_sca = values[:,0], values[:,5], values[:,6]
-    else:
-        raise ValueError('Unsupported grain size distribution index, options are q=None for single grain size opacities or q=2.5, 3.5, or 4.0.')
-
-    return a, k_abs, k_sca
