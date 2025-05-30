@@ -16,10 +16,10 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
 
     This function supports both monodisperse and polydisperse grain size distributions,
     allowing for either a full grain size integration or a binned approximation (`bin_approx`).
-    It assumes a constant internal density across all grain sizes of 1.675 (g/cm³) as per the DSHARP dust model.
-
+    
     Opacities are computed using the DSHARP dust opacity tables (Birnstiel et al. 2018) and
     are valid for wavelengths in the range 1e-5 to 10 cm and grain sizes from 1e-5 to 100 cm.
+    It assumes a constant internal density across all grain sizes of 1.675 (g/cm³), as per the adopted dust model.
 
     Notes
     -----
