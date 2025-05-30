@@ -12,33 +12,39 @@ from scipy.interpolate import interp1d
 
 def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
     """
-    Computes the opacities using either the full grain size distribution or using a binned approximation.
-    These opacities are derived using the DSHARP dust model (see Birnstiel+18). Note that this routine 
-    assumes that the density of the dust grains is the same for all sizes. 
+    Computes the opacities using either the full grain size distribution or using a binned approximation 
+    appropriate for polydisperse models. These opacities are derived using the DSHARP dust model (see Birnstiel+18). 
+    Note that this routine assumes that the density of the dust grains is the same for all sizes. 
 
-    Note:     
-        This function has an option we call binned approximation (`bin_approx` argument), which must be enabled
-        if analyzing polydisperse simulations. In this case, the sizes in the grain size distribution are binned such that the 
-        first bin starts at 1e-5 cm always (the DSHARP dust model limits) while the a_max of each bin is the grain size. 
-        The left edges of the subsequent bins after the first one are a slight offset (1e-10 cm) from the right edge of 
-        the previous bin. This explicit overlap removal is done to ensure the volume densities are not overcalculated which happens if the 
-        distribution always starts at 1e-5 cm as this causes small grain masses to be overestimated. Also note that no opacities
-        can be computed for the smallest grain (1e-5 cm), unless a small offset is used (e.g. 1e-5 + 1e-10).
+    This routine allows opacity calculations for radio wavelenths between 1e-5 to 10 cm, and for a range of
+    grain sizes between 1e-5 to 100 cm. 
 
-    Args:
-        q (float): The power-law index of the grain size distribution (n(a) scales with a^{-q}).
-        wavelength (float): The wavelength at which to calculate the opacities, in cm. 
-        grain_sizes (list or ndarray): List of grain sizes (in cm) to be used as the maximum sizes for the bins.
-        bin_approx (boolean): Whether to bin the grain sizes when calculating the opacities. This should be used when
-            analyzing polydisperse simulations as the generated bins will be constructed in such a way
-            so as to avoid overlap (each bin has a unique a_min and a_max, a_max is the size of the grain), 
-            thus avoiding overestimating the mass of the small grains when getting opacities for multiple species. 
-            Defaults to False which assumes a monodisperse simulation.
+    Note
+    ----------     
+    This function has an option we call binned approximation (`bin_approx` argument), which must be enabled
+    if analyzing polydisperse simulations. In this case, the sizes in the grain size distribution are binned such that the 
+    first bin starts at 1e-5 cm always (the DSHARP dust model limits) while the a_max of each bin is the grain size. 
+    The left edges of the subsequent bins after the first one are a slight offset (1e-10 cm) from the right edge of 
+    the previous bin. This explicit overlap removal is done to ensure the volume densities are not overcalculated which happens if the 
+    distribution always starts at 1e-5 cm as this causes small grain masses to be overestimated. Also note that no opacities
+    can be computed for the smallest grain (1e-5 cm), unless a small offset is used (e.g. 1e-5 + 1e-10).
 
-    Returns:
-        absorption_opacities: np.ndarray
-        scattering_opacities: np.ndarray
-        grain_size_bins: np.ndarray
+    Parameters
+    ----------
+    q (float): The power-law index of the grain size distribution (n(a) scales with a^{-q}).
+    wavelength (float): The wavelength at which to calculate the opacities, in cm. 
+    grain_sizes (list or ndarray): List of grain sizes (in cm) to be used as the maximum sizes for the bins.
+    bin_approx (boolean): Whether to bin the grain sizes when calculating the opacities. This should be used when
+        analyzing polydisperse simulations as the generated bins will be constructed in such a way
+        so as to avoid overlap (each bin has a unique a_min and a_max, a_max is the size of the grain), 
+        thus avoiding overestimating the mass of the small grains when getting opacities for multiple species. 
+        Defaults to False which assumes a monodisperse simulation.
+
+    Returns
+    ----------
+    absorption_opacities: np.ndarray
+    scattering_opacities: np.ndarray
+    grain_size_bins: np.ndarray
     """
 
     # This is the data extracted from the DSHARP code released as part of Birnstiel+18
