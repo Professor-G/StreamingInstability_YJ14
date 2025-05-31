@@ -1,0 +1,27 @@
+{% extends "!layout.html" %}
+{% block footer %} {{ super() }}
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #5c4033;  /* Dark brown */
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+      background: #7b5e57;  /* Medium warm brown */
+    }
+
+    /* Main page content background */
+    .wy-nav-content {
+      background: #f3e5d0;  /* Soft beige for warmth */
+    }
+
+    /* Optional: text color override for contrast */
+    .wy-menu-vertical a, 
+    .wy-side-nav-search input, 
+    .wy-side-nav-search .icon {
+      color: #fdfcf9;  /* Light text for contrast on dark brown */
+    }
+  </style>
+{% endblock %}
