@@ -35,8 +35,14 @@ Pages
 .. toctree::
    :maxdepth: 1
 
-   source/Streaming Instability
-   source/Mass Excess Analysis
+   source/Mass Budget Problem in Protoplanetary Disks
+   source/Hydrodynamical Simulations of the Streaming Instability
+   source/Figure 1 - Disk Model
+   source/Figures 2 & 3 - Simulations
+   source/Figures 4 & 5 - Frequency-dependent Dust Opacities 
+   source/Figure 6 & 7 - Optical Depth and Intensity Calculations
+   source/Figure 7 & 8 - Radiative Transfer Results
+
 
 Documentation
 ==================
