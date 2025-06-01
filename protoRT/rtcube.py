@@ -67,8 +67,8 @@ class RadiativeTransferCube:
         Dust absorption opacity (cm²/g). If None, computed from DSHARP.
     sigma : float or ndarray, optional
         Dust scattering opacity (cm²/g). If None, computed from DSHARP.
-    q : float, optional
-        Power-law index for grain size distribution (n(a) ∝ a^{-q}). Default is 2.5.
+    p : float, optional
+        Power-law index for grain size distribution (n(a) ∝ a^{-p}). Default is 2.5.
     npar : int, optional
         Number of particles in the simulation. Only required for multi-species simulations. Default is 1,000,000.
     ipars, xp, yp, zp : ndarray, optional
@@ -157,7 +157,7 @@ class RadiativeTransferCube:
         include_scattering: bool = False,
         kappa: Optional[Union[float, np.ndarray]] = None,
         sigma: Optional[Union[float, np.ndarray]] = None,
-        q: float = 2.5,
+        p: float = 2.5,
         npar: int = int(1e6),
         ipars: Optional[np.ndarray] = None,
         xp: Optional[np.ndarray] = None,
@@ -199,7 +199,7 @@ class RadiativeTransferCube:
         self.include_scattering: bool = include_scattering
         self.kappa: Optional[Union[float, np.ndarray]] = kappa
         self.sigma: Optional[Union[float, np.ndarray]] = sigma
-        self.q: float = q
+        self.p: float = p
 
         # Polydisperse Simulation Parameters
         self.npar: int = npar
@@ -906,7 +906,7 @@ class RadiativeTransferCube:
         """
 
         # Grain size, absorption opacity, and scattering opacity -- from DSHARP project. Note that the bin_approx determines whether the simulation is polydisperse.       
-        self.kappa, self.sigma, self.grain_size_bins = compute_opacities.dsharp_model(self.q, self.wavelength, self.grain_size, bin_approx=isinstance(self.grain_size, np.ndarray))
+        self.kappa, self.sigma, self.grain_size_bins = compute_opacities.dsharp_model(self.p, self.wavelength, self.grain_size, bin_approx=isinstance(self.grain_size, np.ndarray))
        
         return 
 
