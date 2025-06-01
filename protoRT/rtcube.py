@@ -75,10 +75,20 @@ class RadiativeTransferCube:
         Particle species and positions. Only required for multi-species simulations.
     xgrid, ygrid, zgrid : ndarray, optional
         Grid coordinates used to bin particles into grid cells for opacity weighting. Only required for multi-species simulations.
+    rhopswarm : ndarray, optional
+        Local swarm densities used in density map conversion and proto-mass calculation. Only required for polydisperse and/or self-gravitating simulations.
+    grid_func : {'linear'}, optional
+        Grid interpolation scheme for each axis. Only `'linear'` is currently supported. Pencil Code stores these as attributes in read_param().
+    num_grid_points : int
+        Number of grid points in x, y, and z directions. Current code assumes cubic domain. Pencil code stores these as attributes in read_dim().
+    num_interp_points : int
+        Number of interpolation points in x, y, and z. Current code assumes cubic domain. Controls smoothing kernel width. Pencil code stores these as attributes in read_dim().
+    index_limits_1 : int
+        Grid index limits along x (l1), y (m1), and z (n1) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim().
+    index_limits_2 : int
+        Grid index limits along x (l2), y (m2), and z (n2) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim(). 
     aps : ndarray, optional
         Azimuthal positions of particles for proto-mass calculation. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
-    rhopswarm : ndarray, optional
-        Local swarm densities used in proto-mass calculation. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     eps_dtog : float, optional
         Dust-to-gas ratio used to estimate proto-masses. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     init_var : ndarray, optional
@@ -156,8 +166,13 @@ class RadiativeTransferCube:
         xgrid: Optional[np.ndarray] = None,
         ygrid: Optional[np.ndarray] = None,
         zgrid: Optional[np.ndarray] = None,
-        aps: Optional[np.ndarray] = None,
         rhopswarm: Optional[np.ndarray] = None,
+        grid_func: Optional[str] = 'linear',
+        num_grid_points: Optional[int] = 262,
+        num_interp_points: Optional[int] = 256,
+        index_limits_1: Optional[int] = 3,
+        index_limits_2: Optional[int] = 258,
+        aps: Optional[np.ndarray] = None,
         eps_dtog: Optional[float] = None,
         init_var: Optional[np.ndarray] = None,
     ) -> None:
@@ -195,6 +210,12 @@ class RadiativeTransferCube:
         self.xgrid: Optional[np.ndarray] = xgrid
         self.ygrid: Optional[np.ndarray] = ygrid
         self.zgrid: Optional[np.ndarray] = zgrid
+        self.rhopswarm: Optional[np.ndarray] = rhopswarm
+        self.grid_func: Optional[str] = grid_func
+        self.num_grid_points: Optional[int] = num_grid_points
+        self.num_interp_points: Optional[int] = num_interp_points
+        self.index_limits_1: Optional[int] = index_limits_1
+        self.index_limits_2: Optional[int] = index_limits_2
 
         # Data Normalization Parameters
         self.code_rho: float = code_rho
@@ -203,7 +224,6 @@ class RadiativeTransferCube:
 
         # Self-Gravity Parameters
         self.aps: Optional[np.ndarray] = aps
-        self.rhopswarm: Optional[np.ndarray] = rhopswarm
         self.eps_dtog: Optional[float] = eps_dtog
         self.init_var: Optional[np.ndarray] = init_var
 
@@ -443,7 +463,15 @@ class RadiativeTransferCube:
                 species_x, species_y, species_z = self.xp[index_species], self.yp[index_species], self.zp[index_species]
                 
                 # Convert positions of particles to a grid density field
-                particle_density = particles_to_density(species_x, species_y, species_z, self.xgrid, self.ygrid, self.zgrid)
+                particle_density = particles_to_density(xp=species_x, yp=species_y, zp=species_z, 
+                    x=self.xgrid, y=self.ygrid, z=self.zgrid,
+                    rhop_swarm=self.rhopswarm, grid_func1=self.grid_func, grid_func2=self.grid_func, grid_func3=self.grid_func, 
+                    mx=self.num_grid_points, my=self.num_grid_points, mz=self.num_grid_points,
+                    nx=self.num_interp_points, ny=self.num_interp_points, nz=self.num_interp_points, 
+                    n1=self.index_limits_1, n2=self.index_limits_2, 
+                    m1=self.index_limits_1, m2=self.index_limits_2, 
+                    l1=self.index_limits_1, l2=self.index_limits_2, 
+                    density=True)
 
                 # Update the density array
                 self.density_per_species[species_type - 1] = particle_density
