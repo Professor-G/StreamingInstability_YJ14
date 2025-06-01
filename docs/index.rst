@@ -30,6 +30,46 @@ You can also clone the development version:
     cd protoRT
     pip install .
 
+Importing protoRT
+==================
+
+The code provides three main functionalities: Disk model configuration, dust opacity calculations using DSHSARP opacities (supports mono and polydisperse models), and the main class `RadiativeTransferCube <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#protoRT.rtcube.RadiativeTransferCube>`_ which conducts the radiative transfer, computing the optical depth, intensities, and resulting mass excess when optically thin emission is assumed.
+
+To get started, a test dataset from a single-species streaming instability simulation without self-gravity, from Yang & Johansen (2014), is provided and automatically loaded if no data is input. This is a shearing box with cubic domain, taken orbit 100. It will be loaded alongside the corresponding 1D coordinate axis array, in units of gas scale height.
+
+.. code-block:: python
+
+   from protoRT import rtcube
+
+   cube = rtcube.RadiativeTransferCube()
+
+.. figure:: _static/module_import.png
+    :align: center
+|
+By default the class is initiated with a gas column density of 30 (g/cm2), a temperature of 30 (K), a gas scale height of 5 (au), stokes number of 0.3 at a wavelength of 1 mm. There are a variety of simulation and model parameters to consider when using your own data, although note that some parameters are only required if analyzing multi-species simulations, and others that are required if the simulation is self-gravitating. please reivew the API documention for details. 
+
+The `configure <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#id0>`_ class method will run through all the relevant calculations in order to perform the radiation transfer at the specified wavelength and compute the mass excess. As no opacity parameters were input, the code will by default use the DSHARP opacities available in the `compute_opacities <https://protort.readthedocs.io/en/latest/autoapi/protoRT/compute_opacities/index.html>`_ module.
+
+.. code-block:: python
+
+   cube.configure()
+
+This method will automatically assign all the relevant attributse including the optical depth at the output plane (``tau``), the corresponding intensity map (``intensity``), as well as the ``filling_factor``, the ``mass_excess``, and the mass of each planetesimal in the simulation, if applicable.
+
+.. code-block:: python
+
+   import pylab as plt
+
+   plt.imshow(cube.tau)
+   plt.imshow(cube.intensity)
+   plt.title(f'Simulation results: Mass Excess: {cube.mass_excess}, Filling Factor: {cube.filling_factor}')
+
+
+.. figure:: _static/module_import.png
+    :align: center
+|
+
+
 Pages
 ==================
 .. toctree::
@@ -37,12 +77,7 @@ Pages
 
    source/Mass Budget Problem in Protoplanetary Disks
    source/Hydrodynamical Simulations of the Streaming Instability
-   source/Figure 1 - Disk Model
-   source/Figures 2 & 3 - Simulations
-   source/Figures 4 & 5 - Frequency-dependent Dust Opacities 
-   source/Figure 6 & 7 - Optical Depth and Intensity Calculations
-   source/Figure 7 & 8 - Radiative Transfer Results
-
+   source/Godines et al 2025 - Figures
 
 Documentation
 ==================
