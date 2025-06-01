@@ -1,7 +1,7 @@
 .. _Streaming_Instability_Simulations:
 
 Streaming Instability
-===========
+-----------
 
 The streaming instability is an efficient mechanism for forming planetesimals out of small (mm-cm) sized dust grains, and has been used to explain how planetesimal growth can overcome bouncing/fragmentation barriers as well as the radial drift barrier.
 
@@ -23,7 +23,7 @@ The strong clumping that arises from the streaming instability is caused by the 
 
 
 Disk Model 
-===========
+-----------
 
 While scale-free shearing boxes can be placed at any astrocentric distance, proper unit conversion requires us to define the gas column density and temperature in physical units first. To extract what these parameters are at the location of the box, a disk model must be constructed first. In our streaming instability simulations, the dust grains settle to the midplane within the first few orbits, as such we define 1-dimensional disk profiles at the midplane only. For example, a common temperature profile of the disk midplane looks as follows:
 
@@ -327,7 +327,7 @@ The disk models used in our paper were generated with the following code:
 
 
 Simulation without Self-Gravity
-===========
+-----------
 
 For this work we analyzed streaming instability simulations, both with and without self-grabity. For our streaming instability study without self-gravity, we use archival data from a single-species shearing box simulation conducted and published by Yang & Johansen 2014 using the Pencil Code, a high-order non- conservative finite-difference code for astrophysics fluid dynamics. The simulation ran for a duration of 100 orbital periods and was configured with 17 million superparticles and a spatial resolution of 256 grid cells in each dimension, where :math:`L_x` = :math:`L_y` = :math:`L_z` = 1.6H. The simulation was conducted using a Stokes number of St = 0.314 with a pressure gradient parameter of :math:`\Pi` = 0.05 and an initial solid-to-gas ratio of Z = 0.02
 
@@ -479,7 +479,7 @@ The optical depth map (``tau``) and the corresponding flux (``flux``) map are sa
     Figure 9: Outgoing flux map (face-on view).
 
 Simulation with Self-Gravity
-===========
+-----------
 
 
 

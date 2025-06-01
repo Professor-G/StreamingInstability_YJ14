@@ -1,7 +1,7 @@
 .. _On_Mass_Budget_Problem:
 
 Test Run
-===========
+-----------
 
 1) Model Parameters
 -----------
