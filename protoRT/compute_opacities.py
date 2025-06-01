@@ -10,7 +10,7 @@ import pkg_resources
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
+def dsharp_model(p, wavelength, grain_sizes, bin_approx=False):
     """
     Compute dust absorption and scattering opacities using the DSHARP model.
 
@@ -38,8 +38,8 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
 
     Parameters
     ----------
-    q : float
-        Power-law index of the grain size distribution; n(a) ∝ a^(-q).
+    p : float
+        Power-law index of the grain size distribution; n(a) ∝ a^(-p).
     wavelength : float
         Wavelength at which to evaluate the opacities [cm].
     grain_sizes : list or ndarray
@@ -82,7 +82,7 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
 
     # Input checks
     #
-    if not isinstance(q, (int, float)): raise TypeError(f"q must be a single numeric value (int or float), but got {type(q)}.")
+    if not isinstance(p, (int, float)): raise TypeError(f"p must be a single numeric value (int or float), but got {type(p)}.")
     if not isinstance(wavelength, (int, float)): raise TypeError(f"wavelength must be a single numeric value (int or float), but got {type(wavelength)}.")
     if not (lam.min() <= wavelength <= lam.max()): raise ValueError(f"Input wavelength {wavelength} cm is outside the valid range [{lam.min()} cm, {lam.max()} cm].")
     if not isinstance(bin_approx, bool): raise TypeError(f"bin_approx must be a boolean, but got {type(bin_approx)}.")
@@ -146,7 +146,7 @@ def dsharp_model(q, wavelength, grain_sizes, bin_approx=False):
         kappa_a_new = 10 ** log_kappa_a_new
 
         # Compute na, ma, da for a_new
-        na = a_new ** (-q)
+        na = a_new ** (-p)
         ma = a_new ** 3  # assuming constant density therefore m(a) da scales with radius only
         #da = np.gradient(a_new)
 
