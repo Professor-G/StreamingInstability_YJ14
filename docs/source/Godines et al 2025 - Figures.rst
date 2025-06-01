@@ -1,7 +1,5 @@
 .. _Analysis:
 
-Test Run
-===========
 
 Figure 1 - Disk Model
 -----------
