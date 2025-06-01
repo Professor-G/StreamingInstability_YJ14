@@ -13,7 +13,7 @@ from pathlib import Path
 import pkg_resources
 import numpy as np
 
-from StreamingInstability_YJ14 import compute_opacities
+from protoRT import compute_opacities
 
 class RadiativeTransferCube:
     """
