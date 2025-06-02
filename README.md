@@ -32,6 +32,7 @@ from protoRT import rtcube
 
 cube = rtcube.RadiativeTransferCube()
 ```
+<img width="671" alt="module_import" src="https://github.com/user-attachments/assets/4b31c3da-369d-4924-a881-94a49067f02c" />
 
 
 By default the class is initiated with a gas column density of 10 (g/cm²), a temperature of 30 (K), a gas scale height of 5 (au), and a stokes number of 0.3. The radiative transfer is also conducted at the 1 mm wavelength. There are a variety of simulation and model parameters to consider when using your own data, although note that a lot of these arguments are only required if analyzing multi-species simulations, with some others that are only necessary if the simulation is self-gravitating. Review the API documention for parameter details. 
@@ -77,6 +78,7 @@ fig.suptitle(f'RT Results (Absorption Only): Mass Excess = {float(cube.mass_exce
 plt.tight_layout()
 plt.show()
 ```
+![tau_intensity_abs_only](https://github.com/user-attachments/assets/1a019324-76ea-4dc4-b74c-accf697a2639)
 
 By default the scattering opacities are not considered in the radiative transfer, this is controlled via the ``include_scattering`` argument. The following shows the same analysis but with scattering. 
 
@@ -116,6 +118,7 @@ fig.suptitle(f'RT Results (Absorption + Scattering): Mass Excess = {float(cube.m
 plt.tight_layout()
 plt.show()
 ```
+![tau_intensity_abs_and_sca](https://github.com/user-attachments/assets/cfe27c03-57b4-42a0-85f5-563f312bd150)
 
 In this example we can see that scattering effects further suppress the emergent intensity and increase the mass excess and filling factor by approximately 16\% and 13\%, respectively.
 
