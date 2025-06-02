@@ -1,4 +1,4 @@
-[![Documentation Status](https://protort.readthedocs.io/en/latest/)](https://protort.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/protort/badge/?version=latest)](https://protort.readthedocs.io/en/latest/)
 [![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/LGPL-3.0)
 
 # protoRT
