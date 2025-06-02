@@ -7,9 +7,9 @@ Welcome to protoRT's documentation!
 ===============================
 **protoRT** is a Python toolkit for radiative transfer and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. This code was used to research the mass budget problem in protoplanetary disks, and accompanies the publication: Godines et al. 2025.
 
-This documentation page details the analysis we conducted as well as examples on how to use the code to perform radiative transfer on numerical simulations of planet formation in the shearing box approximation. An in-depth overview of the code functionality is available in the `API Reference <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#protoRT.rtcube.RadiativeTransferCube>`_.
+This documentation page details the analysis we conducted as well as examples on how to use the code to perform radiative transfer on numerical simulations of planet formation in the shearing box approximation. An in-depth overview of the code functionality is available in the `API Reference <https://protort.readthedocs.io/en/latest/autoapi/index.html>`_.
 
-If you use this code for publication we would appreciate citations to the paper. 
+If you use this code for publication, we would appreciate citations to the paper. 
 
 Questions? Please e-mail us: godines@nmsu.edu, wlyra@nmsu.edu   
 
@@ -35,7 +35,7 @@ Importing protoRT
 
 The code provides three main functionalities: Protoplanetary disk modeling, dust opacity calculations using DSHSARP opacities (supports mono and polydisperse models), and the main class `RadiativeTransferCube <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#protoRT.rtcube.RadiativeTransferCube>`_ which conducts the radiative transfer, computing the optical depth, intensities, and resulting mass excess when optically thin emission is assumed.
 
-To get started, a test dataset from a single-species streaming instability simulation without self-gravity, from Yang & Johansen (2014), is provided and automatically loaded if no data is input. This is a shearing box with cubic domain, taken orbit 100. It will be loaded alongside the corresponding 1D coordinate axis array, in units of gas scale height.
+To get started, a test dataset from a single-species streaming instability simulation without self-gravity, from `Yang and Johansen 2014 <https://iopscience.iop.org/article/10.1088/0004-637X/792/2/86>`_ is provided and automatically loaded if no data is input. This is a shearing box with a cubic domain, taken at orbit 100. The ``data`` will be loaded alongside the corresponding 1D coordinate ``axis`` array, in units of gas scale height.
 
 .. code-block:: python
 
@@ -46,15 +46,15 @@ To get started, a test dataset from a single-species streaming instability simul
 .. figure:: _static/module_import.png
     :align: center
 |
-By default the class is initiated with a gas column density of 10 (g/cm²), a temperature of 30 (K), a gas scale height of 5 (au), a stokes number of 0.3. The radiative transfer is also conducted at the 1 mm wavelength. There are a variety of simulation and model parameters to consider when using your own data, although note that a lot of these arguments are only required if analyzing multi-species simulations, with some others that are only required if the simulation is self-gravitating. Reivew the API documention for parameter details. 
+By default the class is initiated with a gas column density of 10 (g/cm²), a temperature of 30 (K), a gas scale height of 5 (au), and a stokes number of 0.3. The radiative transfer is also conducted at the 1 mm wavelength. There are a variety of simulation and model parameters to consider when using your own data, although note that a lot of these arguments are only required if analyzing multi-species simulations, with some others that are only necessary if the simulation is self-gravitating. Review the API documention for parameter details. 
 
-The `configure <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#id0>`_ class method will convert the simulation into physical units (cgs) and run through all the relevant calculations in order to perform the radiation transfer at the specified wavelength and compute the mass excess. When no opacities are input, the code will use the `DSHARP <https://iopscience.iop.org/article/10.3847/2041-8213/aaf743>`_ opacities included in the `compute_opacities <https://protort.readthedocs.io/en/latest/autoapi/protoRT/compute_opacities/index.html>`_ module. When using the DSHARP opacities, ensure that the internal dust density of the dust grains (``grain_rho``) is the default value of 1.675 (g/cm³) as per the adoped dust model.
+The `configure <https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#id0>`_ class method will convert the simulation into physical units (cgs) and run through all the relevant calculations in order to perform the radiation transfer at the specified wavelength and compute the mass excess. When no opacities are input, the code will use the `DSHARP <https://iopscience.iop.org/article/10.3847/2041-8213/aaf743>`_ opacities included in the `compute_opacities <https://protort.readthedocs.io/en/latest/autoapi/protoRT/compute_opacities/index.html>`_ module. When using the DSHARP opacities, ensure that the internal dust density of the dust grains (``grain_rho``) is the default value of 1.675 (g/cm³) to be consistent with the DSHARP dust model.
 
 .. code-block:: python
 
    cube.configure()
 
-This method will automatically assign all of the relevant attributes including the optical depth at the output plane (``tau``), the corresponding intensity map (``intensity``), as well as the ``filling_factor``, ``mass_excess``, and the mass of each planetesimal in the simulation (``proto_mass``), if applicable.
+Executing this method will automatically assign all of the relevant attributes including the optical depth at the output plane (``tau``), the corresponding intensity map (``intensity``), as well as the ``filling_factor``, ``mass_excess``, and the mass of each planetesimal in the simulation (``proto_mass``), if applicable.
 
 .. code-block:: python
 
@@ -96,7 +96,7 @@ This method will automatically assign all of the relevant attributes including t
 |
 By default the scattering opacities are not considered in the radiative transfer, this is controlled via the ``include_scattering`` argument. The following shows the same analysis but with scattering. 
 
-**IMPORTANT: The data cube is converted from code to physical units during the configuration, and is overwritten. As such do not re-configure multiple times, instead re-instantiate the class object.**
+**IMPORTANT: The data cube is converted from code to physical units during the configuration, and is overwritten. As such, do not re-configure multiple times, instead re-instantiate the class object.**
 
 .. code-block:: python
 
@@ -137,9 +137,9 @@ By default the scattering opacities are not considered in the radiative transfer
 .. figure:: _static/tau_intensity_abs_and_sca.png
     :align: center
 |
-In this example we can see that scattering effects increase the mass excess and filling factor by approximately 16\% and 13\%, respectively.
+In this example we can see that scattering effects further suppress the emergent intensity and increase the mass excess and filling factor by approximately 16\% and 13\%, respectively.
 
-To learn how to use the code, please review the `following page <https://protort.readthedocs.io/en/latest/source/Godines%20et%20al%202025.html>`_ which details how the program was used in Godines et al. 2025, including the analysis required to generate the plots. 
+To learn how to use the code, please review the `following page <https://protort.readthedocs.io/en/latest/source/Godines%20et%20al%202025.html>`_ which details how the program was used in Godines et al. 2025, which employed multi-species simulations with self-gravity, at three locations in the disk. 
 
 Pages
 ==================
