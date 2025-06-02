@@ -1,5 +1,8 @@
-.. _Analysis:
+.. _Godines_et_al_2025:
 
+
+Figures
+===========
 
 Figure 1 - Disk Model
 -----------

@@ -1,2 +1,4 @@
-.. _Hydrodynamical Simulations of the Streaming Instability:
+.. _Hydrodynamical_Simulations_of_the_Streaming_Instability:
 
+Simulations
+===========

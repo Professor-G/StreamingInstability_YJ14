@@ -77,7 +77,7 @@ Pages
 
    source/Mass Budget Problem in Protoplanetary Disks
    source/Hydrodynamical Simulations of the Streaming Instability
-   source/Godines et al 2025 - Figures
+   source/Godines et al 2025
 
 Documentation
 ==================

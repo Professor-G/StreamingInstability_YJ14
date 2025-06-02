@@ -1,2 +1,4 @@
-.. _Mass Budget Problem in Protoplanetary Disks:
+.. _Mass_Budget_Problem_in_Protoplanetary_Disks:
 
+Mass Budget Problem
+===========
