@@ -127,7 +127,7 @@ To learn how to use the code, please review the [following page](https://protort
 
 # Citation
 
-If you use this program in publication, we would appreciate citations to the paper, [Godines et al. 2025.](...)
+If you use this program in publication, we would appreciate citations to the paper, Godines et al. 2025.
 
  
 # How to Contribute?
