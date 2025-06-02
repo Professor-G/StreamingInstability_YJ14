@@ -1,7 +1,7 @@
 .. _Godines_et_al_2025:
 
 
-Figures
+Godines et al. 2025
 ===========
 
 Figure 1 - Disk Model
