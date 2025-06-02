@@ -49,7 +49,7 @@ class RadiativeTransferCube:
     code_omega : float, optional
         Orbital frequency in code units (`Omega` in `start.in`). Default is 2π.
     column_density : float, optional
-        Gas column density in cgs units (g/cm²). Default is 100.
+        Gas column density in cgs units (g/cm²). Default is 10.
     T : float, optional
         Isothermal box temperature (K). Default is 30.
     H : float, optional
@@ -148,7 +148,7 @@ class RadiativeTransferCube:
         code_rho: float = 1.0,
         code_cs: float = 2 * np.pi,
         code_omega: float = 2 * np.pi,
-        column_density: float = 100.0,
+        column_density: float = 10.0,
         T: float = 30.0,
         H: float = 5 * const.au.cgs.value,
         stoke: Union[float, np.ndarray] = 0.3,
