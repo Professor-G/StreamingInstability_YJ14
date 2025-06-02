@@ -3,7 +3,7 @@
 
 # protoRT
 
-This is an open-source Python-based toolkit for radiative transfer and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. This code was used to research the mass budget problem in protoplanetary disks, and Godines et al. 2025.
+This is an open-source Python-based toolkit for radiative transfer and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. This code was used to research the mass budget problem in protoplanetary disks, see Godines et al. 2025.
 
 
 # Installation
