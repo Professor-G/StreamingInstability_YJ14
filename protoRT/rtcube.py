@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from protoRT import compute_opacities
 
-# For loading the files in data/ (python3.12 required as pkg_resources was removed!)
+# For loading the files in the data directory (python3.9+ required as pkg_resources was removed!)
 import protoRT  
 from importlib.resources import files
 
