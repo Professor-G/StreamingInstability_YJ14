@@ -10,10 +10,13 @@ import warnings; warnings.filterwarnings("ignore")
 from scipy import interpolate, stats
 import astropy.constants as const
 from pathlib import Path
-import pkg_resources
 import numpy as np
-
 from protoRT import compute_opacities
+
+# For loading the files in data/ (python3.12 required as pkg_resources was removed!)
+import protoRT  
+from importlib.resources import files
+
 
 class RadiativeTransferCube:
     """
@@ -1163,18 +1166,13 @@ def load_cube():
         to each axis (z, y, x) in code units.
     """
 
-    resource_package = __name__
-    resource_path = '/'.join(('data', 'density_cube_1.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    density_cube_1 = np.load(file)
+    base = files(protoRT).joinpath("data")
 
-    resource_path = '/'.join(('data', 'density_cube_2.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    density_cube_2 = np.load(file)
+    density_cube_1 = np.load(base.joinpath("density_cube_1.npy"))
+    density_cube_2 = np.load(base.joinpath("density_cube_2.npy"))
+    axis = np.loadtxt(base.joinpath("axis"))
 
-    resource_path = '/'.join(('data', 'axis'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-
-    data, axis = np.r_[density_cube_1, density_cube_2], np.loadtxt(file)
+    data = np.r_[density_cube_1, density_cube_2]
+    return data, axis
 
     return data, axis

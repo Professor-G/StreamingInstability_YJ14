@@ -6,9 +6,10 @@ Created on Fri Nov 29 12:01:01 2024
 @author: daniel
 """
 import numpy as np
-import pkg_resources
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from importlib.resources import files, as_file
+import protoRT  
 
 def dsharp_model(p, wavelength, grain_sizes, bin_approx=False):
     """
@@ -59,23 +60,17 @@ def dsharp_model(p, wavelength, grain_sizes, bin_approx=False):
     """
 
     # This is the data extracted from the DSHARP code released as part of Birnstiel+18
-    resource_package = __name__
+    with as_file(files(protoRT).joinpath("data", "all_grain_sizes.txt")) as f:
+        a_orig = np.loadtxt(f)
 
-    resource_path = '/'.join(('data', 'all_grain_sizes.txt'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    a_orig = np.loadtxt(file)
-    
-    resource_path = '/'.join(('data', 'all_wavelengths.txt'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    lam = np.loadtxt(file)
+    with as_file(files(protoRT).joinpath("data", "all_wavelengths.txt")) as f:
+        lam = np.loadtxt(f)
 
-    resource_path = '/'.join(('data', 'kappa_abs.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    k_abs_orig = np.load(file)
+    with as_file(files(protoRT).joinpath("data", "kappa_abs.npy")) as f:
+        k_abs_orig = np.load(f)
 
-    resource_path = '/'.join(('data', 'kappa_sca.npy'))
-    file = pkg_resources.resource_filename(resource_package, resource_path)
-    k_sca_orig = np.load(file)
+    with as_file(files(protoRT).joinpath("data", "kappa_sca.npy")) as f:
+        k_sca_orig = np.load(f)
 
     # Transpose to have shape (n_nu, n_a)
     kappa_a_nu_orig, kappa_a_nu_orig_sca = k_abs_orig.T, k_sca_orig.T
