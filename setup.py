@@ -4,32 +4,42 @@ Created on Thu Mar 31 13:30:11 2022
 
 @author: danielgodinez
 """
-from setuptools import setup, find_packages, Extension
-
+from setuptools import setup, find_packages
 
 setup(
     name="protoRT",
-    version="1.0",
+    version="1.0.1",  # Match pyproject.toml
     author="Daniel Godines",
     author_email="danielgodinez123@gmail.com",
     description="Radiative transfer-based mass analysis of planetesimal formation simulations.",
-    license='GPL-3.0',
-    url = "https://github.com/Professor-G/protoRT",
+    license='GPL-3.0-or-later',
+    url="https://github.com/Professor-G/protoRT",
     classifiers=[
-		'Development Status :: 5 - Production/Stable',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Astronomy',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-		'Programming Language :: Python :: 3', 
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Operating System :: OS Independent',
-],
-    packages=find_packages('.'),
-    install_requires = ['numpy','scipy','matplotlib', 'astropy'],
-    python_requires='>=3.7',
-    include_package_data=True,
-    test_suite="nose.collector",
+    ],
+    packages=find_packages(),
+    python_requires='>=3.9',
+    install_requires=[
+        "numpy",
+        "scipy>=1.7.3",
+        "matplotlib>=3.5.1",
+        "astropy>=5.0.4"
+    ],
+    include_package_data=True,  # needed for MANIFEST.in
     package_data={
-    '': ['all_grain_sizes.txt', 'all_wavelengths.txt', 'axis', 'density_cube_1.npy', 'density_cube_2.npy', 'kappa_abs.npy', 'kappa_sca.npy'],
-},
-
+        "protoRT": [
+            "data/*.npy",
+            "data/*.txt",
+            "data/axis",
+        ],
+    },
 )

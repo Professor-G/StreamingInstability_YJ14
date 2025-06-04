@@ -3,10 +3,12 @@
 
 # protoRT
 
-This is an open-source Python-based toolkit for radiative transfer and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. This code was used to research the mass budget problem in protoplanetary disks, see Godines et al. 2025.
+This is an open-source Python-based toolkit for 1D radiative transfer and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. This code was used to research the mass budget problem in protoplanetary disks, see Godines et al. 2025.
 
 
 # Installation
+
+The code is compatible with Python 3.9 and above.
 
 ```
     $ pip install protoRT
@@ -19,7 +21,6 @@ For technical details and examples of how to implement this program for numerica
 
 
 # Getting Started
-
 
 
 The code provides three main functionalities: Protoplanetary disk modeling, dust opacity calculations using [DSHARP](https://iopscience.iop.org/article/10.3847/2041-8213/aaf743) opacities (supports mono and polydisperse models), and the main class [RadiativeTransferCube](https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#protoRT.rtcube.RadiativeTransferCube) which conducts the radiative transfer, computing the optical depth, intensities, and resulting mass excess when optically thin emission is assumed.
@@ -43,7 +44,7 @@ The [configure](https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/
 cube.configure()
 ```
 
-Executing this method will automatically assign all of the relevant attributes including the optical depth at the output plane (``tau``), the corresponding intensity map (``intensity``), as well as the ``filling_factor``, ``mass_excess``, and the mass of each planetesimal in the simulation (``proto_mass``), if applicable.
+Executing this method will automatically assign all of the relevant attributes including the optical depth at the output plane (``tau``), the corresponding intensity map (``intensity``), as well as the ``filling_factor``, ``mass_excess``, and the mass of each planetesimal in the simulation (``proto_mass``), if applicable. If analyzing multi-species models, a per-species density field will also be saved in the ``density_per_species`` class attribute.
 
 ```python
 import numpy as np
