@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="protoRT",
-    version="1.0.1",  # Match pyproject.toml
+    version="1.0.2",  
     author="Daniel Godines",
     author_email="danielgodinez123@gmail.com",
     description="Radiative transfer-based mass analysis of planetesimal formation simulations.",
@@ -34,7 +34,7 @@ setup(
         "matplotlib>=3.5.1",
         "astropy>=5.0.4"
     ],
-    include_package_data=True,  # needed for MANIFEST.in
+    include_package_data=True,
     package_data={
         "protoRT": [
             "data/*.npy",
