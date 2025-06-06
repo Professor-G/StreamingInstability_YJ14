@@ -6,7 +6,6 @@ Created on Fri Nov 29 12:01:01 2024
 @author: daniel
 """
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from importlib.resources import files, as_file
 import protoRT  
