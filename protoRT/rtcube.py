@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 from protoRT import compute_opacities
 
-# For loading the files in the data directory (python3.9+ required as pkg_resources was removed!)
+# For loading the internal files in the data dir, importlib.resources replaces pkg_resources from setuptools which was removed in Python3.9+
+# v1.0.0 of the code therefore requires Python3.9 or below to work, v1.0.1+ supports modern Python
 import protoRT  
 from importlib.resources import files
 
