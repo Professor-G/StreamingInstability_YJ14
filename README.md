@@ -25,7 +25,7 @@ For technical details and examples of how to implement this program for numerica
 
 The code provides three main functionalities: Protoplanetary disk modeling, dust opacity calculations using [DSHARP](https://iopscience.iop.org/article/10.3847/2041-8213/aaf743) opacities (supports mono and polydisperse models), and the main class [RadiativeTransferCube](https://protort.readthedocs.io/en/latest/autoapi/protoRT/rtcube/index.html#protoRT.rtcube.RadiativeTransferCube) which conducts the radiative transfer, computing the optical depth, intensities, and resulting mass excess when optically thin emission is assumed.
 
-To get started, a test dataset from a single-species streaming instability simulation without self-gravity, from [Yang & Johansen (2014)](https://iopscience.iop.org/article/10.1088/0004-637X/792/2/86), is provided and automatically loaded if no data is input. This is a shearing box with a cubic domain run with a Stokes number of 0.3 and a pressure gradient parameter of $\Pi=0.05$, taken at orbit 100. The ``data`` will be loaded alongside the corresponding 1D coordinate ``axis`` array, in units of gas scale height (``H``).
+To get started, a test dataset from a single-species streaming instability simulation without self-gravity, from [Yang & Johansen (2014)](https://iopscience.iop.org/article/10.1088/0004-637X/792/2/86), taken at orbit 100, is provided and automatically loaded if no data is input. This is a shearing box with a cubic domain, set up with a Stokes number of 0.3 and a pressure gradient parameter of $\Pi=0.05$. The ``data`` will be loaded alongside the corresponding 1D coordinate ``axis`` array, in units of gas scale height (``H``).
 
 
 ```python
