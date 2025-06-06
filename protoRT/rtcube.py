@@ -60,36 +60,37 @@ class RadiativeTransferCube:
     stoke : float or ndarray
         Stokes number(s) for the dust population.
     grain_rho : float or ndarray, optional
-        Internal grain density (g/cm³). If None, defaults to 1.675, which is from the DSHARP dust model
-        and must be used if no opacities are input as DSHARP opacities are used by default.
+        Internal grain density (g/cm³). Must correspond with the input Stokes number(s). If None, defaults to 1.675, which is from the DSHARP dust model and must be used if no opacities are input as DSHARP opacities are used by default.
     wavelength : float, optional
         Wavelength at which opacities are computed (cm). Range: 1e-5 to 10. Default is 0.1.
     include_scattering : bool, optional
         If True, include scattering opacity in radiative transfer. Default is False.
     kappa : float or ndarray, optional
-        Dust absorption opacity (cm²/g). If None, computed from DSHARP.
+        Dust absorption opacity (cm²/g). Must correspond with the input Stokes number(s). If None, computed from DSHARP.
     sigma : float or ndarray, optional
-        Dust scattering opacity (cm²/g). If None, computed from DSHARP.
+        Dust scattering opacity (cm²/g). Must correspond with the input Stokes number(s). If None, computed from DSHARP.
     p : float, optional
         Power-law index for grain size distribution (n(a) ∝ a^{-p}). Default is 2.5.
     npar : int, optional
-        Number of particles in the simulation. Only required for multi-species simulations. Default is 1,000,000.
+        Number of particles in the simulation. Default is 1,000,000. Only required for multi-species simulations.
     ipars, xp, yp, zp : ndarray, optional
         Particle species and positions. Only required for multi-species simulations.
     xgrid, ygrid, zgrid : ndarray, optional
         Grid coordinates used to bin particles into grid cells for opacity weighting. Only required for multi-species simulations.
     rhopswarm : ndarray, optional
         Local swarm densities used in density map conversion and proto-mass calculation. Only required for polydisperse and/or self-gravitating simulations.
+    particle_weight : float or array_like, optional
+        Particle density or weight. If a float, all particles have the same weight, if array, must correspond with the particle positions. Pencil Code stores this as the rhop_swarm attribute in read_param(). Default is 6.30813659928. Only required for multi-species simulations.
     grid_func : {'linear'}, optional
-        Grid interpolation scheme for each axis. Only `'linear'` is currently supported. Pencil Code stores these as attributes in read_param(). Default is 'linear'.
+        Grid interpolation scheme for each axis. Only `'linear'` is currently supported. Pencil Code stores these as attributes in read_param(). Default is 'linear'. Only required for multi-species simulations.
     num_grid_points : int
-        Number of grid points in x, y, and z directions. Current code assumes cubic domain. Pencil code stores these as attributes in read_dim(). Default is 262.
+        Number of grid points in x, y, and z directions. Current code assumes cubic domain. Pencil code stores these as attributes in read_dim(). Default is 262. Only required for multi-species simulations.
     num_interp_points : int
-        Number of interpolation points in x, y, and z. Current code assumes cubic domain. Controls smoothing kernel width. Pencil code stores these as attributes in read_dim(). Default is 256.
+        Number of interpolation points in x, y, and z. Current code assumes cubic domain. Controls smoothing kernel width. Pencil code stores these as attributes in read_dim(). Default is 256. Only required for multi-species simulations.
     index_limits_1 : int
-        Grid index limits along x (l1), y (m1), and z (n1) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim(). Default is 3.
+        Grid index limits along x (l1), y (m1), and z (n1) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim(). Default is 3. Only required for multi-species simulations.
     index_limits_2 : int
-        Grid index limits along x (l2), y (m2), and z (n2) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim(). Default is 258.
+        Grid index limits along x (l2), y (m2), and z (n2) directions for trimming ghost zones. Pencil code stores these as attributes in read_dim(). Default is 258. Only required for multi-species simulations.
     aps : ndarray, optional
         Azimuthal positions of particles for proto-mass calculation. Only required for self-gravitating simulations. Must be input to enable protomass calculations.
     eps_dtog : float, optional
@@ -170,6 +171,7 @@ class RadiativeTransferCube:
         ygrid: Optional[np.ndarray] = None,
         zgrid: Optional[np.ndarray] = None,
         rhopswarm: Optional[np.ndarray] = None,
+        particle_weight: Optional[Union[float, np.ndarray]] = 6.30813659928,
         grid_func: Optional[str] = 'linear',
         num_grid_points: Optional[int] = 262,
         num_interp_points: Optional[int] = 256,
@@ -214,6 +216,7 @@ class RadiativeTransferCube:
         self.ygrid: Optional[np.ndarray] = ygrid
         self.zgrid: Optional[np.ndarray] = zgrid
         self.rhopswarm: Optional[np.ndarray] = rhopswarm
+        self.particle_weight: Optional[Union[float, np.ndarray]] = particle_weight
         self.grid_func: Optional[str] = grid_func
         self.num_grid_points: Optional[int] = num_grid_points
         self.num_interp_points: Optional[int] = num_interp_points
@@ -465,8 +468,8 @@ class RadiativeTransferCube:
                 # Extract the (x,y,z) positions for all of these grains
                 species_x, species_y, species_z = self.xp[index_species], self.yp[index_species], self.zp[index_species]
                 
-                # Index the local swarm density accordingly
-                rhop_swarm = self.rhopswarm[index_species]
+                # If particle weight is an array need to index according to the particle position, otherwise if float, the particles all have same weight
+                rhop_swarm = self.particle_weight[index_species] if isinstance(self.particle_weight, np.ndarray) else self.particle_weight
 
                 # Convert positions of particles to a grid density field
                 particle_density = particles_to_density(xp=species_x, yp=species_y, zp=species_z, 
