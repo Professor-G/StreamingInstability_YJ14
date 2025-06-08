@@ -26,8 +26,7 @@ def dsharp_model(p, wavelength, grain_sizes, bin_approx=False):
     When `bin_approx=True`, the grain size distribution is discretized into bins such that:
     - The first bin always starts at 1e-5 cm (minimum DSHARP grain size).
     - Each bin's `a_max` is given by the input `grain_sizes`.
-    - Each subsequent bin begins slightly above the previous bin edge (offset by 1e-10 cm)
-      to avoid overlap and mass overestimation.
+    - Each subsequent bin begins slightly above the previous bin edge (offset by 1e-10 cm) to avoid overlap and mass overestimation.
 
     If `bin_approx=False`, a single grain size is assumed (monodisperse case).
 
