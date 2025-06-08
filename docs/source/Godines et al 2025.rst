@@ -229,7 +229,7 @@ The saved data from this analysis has been made available for download here (14 
 
 We have also made available for download the simulation data from the Pencil Code, which have been saved as .npy and .txt files to facilitate data-transfer. These files are needed for this analysis (the ``path_to_data`` variable below). 
 
-**Download the tar files here:**
+**Download the simulation data here:**
 
 `10 au simulation <https://drive.google.com/file/d/1-w3xC5ESwJJIcTq02-palQ-prz5o16Ec/view?usp=sharing>`_ (5.11 GB, 25 GB untarred).
 
@@ -409,7 +409,7 @@ We have also made available for download the simulation data from the Pencil Cod
 Figure 3 - Simulations
 -----------
 
-The following code shows the time evolution of the three simulations.
+The following code shows the time evolution of the three simulations. This uses the analysis results saved above and the time series dataframe provided in the simulation data. 
 
 .. code-block:: python
 
