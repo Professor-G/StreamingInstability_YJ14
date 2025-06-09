@@ -1,5 +1,7 @@
 [![Documentation Status](https://readthedocs.org/projects/protort/badge/?version=latest)](https://protort.readthedocs.io/en/latest/)
 [![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/LGPL-3.0)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15622956.svg)](https://doi.org/10.5281/zenodo.15622956)
+
 
 # protoRT
 
