@@ -225,7 +225,7 @@ Simulation-based data is also saved, including the mass of the planetesimals as 
 
 This code was run 24 times -- 4 ALMA bands x 3 disk locations x 2 opacity options (absorption only  and absorption + scattering). 
 
-The saved data from this analysis has been made available for download here (14 GB untarred) . This is the ``path_to_save`` variable in the code.
+The saved data from this analysis has been made available for `download here <https://drive.google.com/file/d/1eMx34rIIK_3zfq4owj7CpOXRyM7C7CDo/view?usp=sharing>`_ (2.5 GB untarred) . This is the ``path_to_save`` variable in the code.
 
 We have also made available for download the simulation data from the Pencil Code, which have been saved as .npy and .txt files to facilitate data-transfer. These files are needed for this analysis (the ``path_to_data`` variable below). 
 
@@ -385,25 +385,29 @@ We have also made available for download the simulation data from the Pencil Cod
 		#
 		cube.configure()
 		#
-		# Calculate the max particle density per species
-		for i in range(len(stoke)): max_rho_per_species[var, i] = np.max(cube.density_per_species[i])
-		#
-		# Convert the ipars array to numerical labels, first species is 1, second is 2, etc...
-		_species_ = np.ceil(ipars / (npar / len(stoke)))
-		for i in range(len(stoke)): num_particles[var, i] = len(np.where(_species_ == i+1)[0])
-		#
 		# Save the key RT results and data parameters (mass excess, filling factor, unit density, cube mass, and mass for each present planetesimal)
 		np.savetxt(path_to_save+f'cube_results_var_{var}.txt', np.r_[cube.mass_excess, cube.filling_factor, cube.unit_density, cube.mass, cube.proto_mass], header='Mass Excess | Filling Factor | Unit Density | Cube Mass | Planet Mass')
 		#
 		# Save the two-dimensional optical depth and intensity maps
 		np.save(path_to_save+f'tau_intensity_{var}.npy', np.array([cube.tau, cube.intensity]))
+		#
+		# Only save the particle density data for the first run, as these are independent of the RT
+	    if band == 0 and r_ == 10 and scattering:
+			# Calculate the max particle density per species
+			for i in range(len(stoke)): max_rho_per_species[var, i] = np.max(cube.density_per_species[i])
+			#
+			# Convert the ipars array to numerical labels, first species is 1, second is 2, etc...
+			_species_ = np.ceil(ipars / (npar / len(stoke)))
+			for i in range(len(stoke)): num_particles[var, i] = len(np.where(_species_ == i+1)[0])
 
-	# The particle evolution data is independent of the radiative transfer therefore will be saved on the main directory, only one per location needed
-	# Save the maximum particle densities over time, shown in first row of Fig. 3
-	np.savetxt(path_to_save[:9]+f'max_densities_{r_}au.txt', max_rho_per_species)
-
-	# Save the number of particles over time, shown in second row of Fig. 3 
-	np.savetxt(path_to_save[:9]+f'num_species_{r_}au.txt', num_particles)
+	# Only need to save the particle density data for the first run, these are independent of the RT analysis
+	if band == 0 and r_ == 10 and scattering:
+		# The particle evolution data is independent of the radiative transfer therefore will be saved on the main directory
+		# Save the maximum particle densities over time, shown in first row of Fig. 3
+		np.savetxt(path_to_save[:9]+f'max_densities_{r_}au.txt', max_rho_per_species)
+		
+		# Save the number of particles over time, shown in second row of Fig. 3 
+		np.savetxt(path_to_save[:9]+f'num_species_{r_}au.txt', num_particles)
 
 
 Figure 3 - Simulations
