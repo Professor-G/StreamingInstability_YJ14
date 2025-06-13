@@ -225,7 +225,7 @@ Simulation-based data is also saved, including the mass of the planetesimals as 
 
 This code was run 24 times -- 4 ALMA bands x 3 disk locations x 2 opacity options (absorption only  and absorption + scattering). 
 
-The saved data from this analysis has been made available for `download here <https://drive.google.com/file/d/1eMx34rIIK_3zfq4owj7CpOXRyM7C7CDo/view?usp=sharing>`_ (2.5 GB untarred) . This is the ``path_to_save`` variable in the code.
+The saved data from this analysis has been made available for `download here <https://drive.google.com/file/d/1eMx34rIIK_3zfq4owj7CpOXRyM7C7CDo/view?usp=sharing>`_ (2.5 GB untarred) . This is the ``path_to_save`` variable in the code below.
 
 We have also made available for download the simulation data from the Pencil Code, which have been saved as .npy and .txt files to facilitate data-transfer. These files are needed for this analysis (the ``path_to_data`` variable below). 
 
@@ -258,7 +258,7 @@ We have also made available for download the simulation data from the Pencil Cod
 	# Whether to include scattering
 	include_scattering = True
 
-	# The location in the disk to be analyzed 
+	# The location in the disk to be analyzed (10, 30 or 100 au)
 	r_ = 10
 
 	###
@@ -275,7 +275,7 @@ We have also made available for download the simulation data from the Pencil Cod
 	q = 3/7.
 	T0 = 150
 
-	# Define the disk model as the Sigma_g, T, and H are needed. NOTE: These parameters are independent of grain size/stokes number so not input needed
+	# Define the disk model as the Sigma_g, T, and H are needed. NOTE: These parameters are independent of grain size/stokes number so no input needed
 	model = disk_model.Model(r, r_c, M_star, M_disk, Z=Z, q=q, T0=T0)
 
 	# The Stokes numbers used in the simulations which correspond to the disk model in Fig. 1
@@ -392,7 +392,7 @@ We have also made available for download the simulation data from the Pencil Cod
 		np.save(path_to_save+f'tau_intensity_{var}.npy', np.array([cube.tau, cube.intensity]))
 		#
 		# Only save the particle density data for the first run, as these are independent of the RT
-	    if band == 0 and r_ == 10 and scattering:
+		if band == 0 and r_ == 10 and scattering:
 			# Calculate the max particle density per species
 			for i in range(len(stoke)): max_rho_per_species[var, i] = np.max(cube.density_per_species[i])
 			#
