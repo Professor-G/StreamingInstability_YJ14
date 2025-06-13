@@ -5,7 +5,7 @@
 
 Welcome to protoRT's documentation!
 ===============================
-**protoRT** is a Python toolkit for radiative transfer (with and without scattering) and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. It supports mono and polydisperse models, with and without self-gravity. This code was used to research the mass budget problem in protoplanetary disks, and accompanies the publication: Godines et al. 2025.
+**protoRT** is a Python toolkit for radiative transfer (with and without scattering) and mass analysis in numerical simulations of planetesimal formation. It computes the optical depth, outgoing intensity, and the mass excess due to optically thick regions in dust-rich environments. It supports mono and polydisperse models, with and without self-gravity. This code was used to research the mass budget problem in protoplanetary disks, and accompanies the publication: `Godines et al 2025 <https://arxiv.org/abs/2506.10435>`_.
 
 This documentation details the analysis we conducted as well as examples on how to use the code to perform radiative transfer on numerical simulations of planet formation in the shearing box approximation. An in-depth overview of the code functionality is available in the `API Reference <https://protort.readthedocs.io/en/latest/autoapi/index.html>`_.
 
