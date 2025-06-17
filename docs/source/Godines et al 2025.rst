@@ -884,7 +884,7 @@ The effective optical depth and corresponding intensity maps at the output plane
 	    r_c = 300 * const.au.cgs.value
 
 	    # Define the disk model to calculate the temperature 
-	    model = disk_model.Model(r, r_c, M_star, M_disk, Z=0.03, q=3/7., T0=150) #grain_rho=grain_rho, stoke=0.3,
+	    model = disk_model.Model(r, r_c, M_star, M_disk, Z=0.03, q=3/7., T0=150)
 
 	    # Convert wavelength to frequency (Hz)
 	    freq = const.c.cgs.value / wave
