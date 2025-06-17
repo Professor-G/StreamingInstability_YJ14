@@ -225,17 +225,17 @@ Simulation-based data is also saved, including the mass of the planetesimals as 
 
 This code was run 24 times -- 4 ALMA bands x 3 disk locations x 2 opacity options (absorption only  and absorption + scattering). 
 
-The saved data from this analysis has been made available for `download here <https://drive.google.com/file/d/1eMx34rIIK_3zfq4owj7CpOXRyM7C7CDo/view?usp=sharing>`_ (2.5 GB untarred) . This is the ``path_to_save`` variable in the code below.
+The saved data from this analysis has been made available for `download here <https://drive.google.com/file/d/1eMx34rIIK_3zfq4owj7CpOXRyM7C7CDo/view?usp=sharing>`_ (2.5 GBs untarred). This is the ``path_to_save`` variable in the code below.
 
 We have also made available for download the simulation data from the Pencil Code, which have been saved as .npy and .txt files to facilitate data-transfer. These files are needed for this analysis (the ``path_to_data`` variable below). 
 
 **Download the simulation data here:**
 
-`10 au simulation <https://drive.google.com/file/d/1-w3xC5ESwJJIcTq02-palQ-prz5o16Ec/view?usp=sharing>`_ (5.11 GB, 25 GB untarred).
+`10 au simulation <https://drive.google.com/file/d/1-w3xC5ESwJJIcTq02-palQ-prz5o16Ec/view?usp=sharing>`_ (5.11 GBs, 25 GBs untarred).
 
-`30 au simulation <https://drive.google.com/file/d/13DErhlI983GQbbIoHqVAeeV6EutzreJ0/view?usp=sharing>`_ (6.02 GB, 25 GB untarred).
+`30 au simulation <https://drive.google.com/file/d/13DErhlI983GQbbIoHqVAeeV6EutzreJ0/view?usp=sharing>`_ (6.02 GBs, 25 GBs untarred).
 
-`100 au simulation <https://drive.google.com/file/d/1iCybaaekgk5H6bueolrPTYttTn9mDrSY/view?usp=sharing>`_ (7.61 GB, 29 GB untarred).
+`100 au simulation <https://drive.google.com/file/d/1iCybaaekgk5H6bueolrPTYttTn9mDrSY/view?usp=sharing>`_ (7.61 GBs, 29 GBs untarred).
 
 .. code-block:: python
 
@@ -1027,8 +1027,238 @@ The effective optical depth and corresponding intensity maps at the output plane
 |
 
 
-Figure 8 - Radiative Transfer Results
+Figure 8 & 9 - Radiative Transfer Results
 -----------
 
-Figure 9 - Radiative Transfer Results (Absorption Only)
------------
+These are the main results from our analysis, showing how the key parameters (mass excess, filling factor, mean optical depth, and corresponding optically thick fractions) evolve over time. These are presented column-wise, with the 10 au results on the left, the 30 au in the middle, and the 100 au results on the right. 
+
+This plotting procedure includes an **include_scattering** variable, which if set to ``True`` will show the results when the scattering opacities are considered in the radiative transfer. If set to ``False``, the absorption-only scenario is shown. This uses the data files available in the analysis directory that was saved.
+
+.. code-block:: python
+
+	import os
+	import numpy as np
+	import matplotlib.pyplot as plt
+	import astropy.constants as const
+	from StreamingInstability_YJ14 import shearing_box, disk_model
+
+	try:
+	    import scienceplots
+	    plt.style.use('science')
+	    plt.rcParams.update({'font.size': 32, 'lines.linewidth': 3.0})
+	except:
+	    print('WARNING: Could not import scienceplots, please install via pip for proper figure formatting.')
+	    plt.style.use('default')
+
+
+	def return_bnu(r, wave):
+	    """Planck function at radius r (cm) and wavelength wave (cm).
+
+	    Parameters
+	    ----------
+	    r : The radius of the disk at which to compute the intensity, in cm.
+	    wave : The observational wavelength, in cm.
+
+	    Returns
+	    -------
+	    b_nu : float
+	        The intensity of an ideal blackbody at the temperature of the given disk locationm
+	    """
+	    
+	    # The disk model we adopt in this work
+	    mass_disk = 0.02
+	    M_star, M_disk = const.M_sun.cgs.value, mass_disk * const.M_sun.cgs.value
+	    r_c = 300 * const.au.cgs.value
+
+	    # Define the disk model to calculate the temperature 
+	    model = disk_model.Model(r, r_c, M_star, M_disk, Z=0.03, q=3/7., T0=150)
+
+	    # Convert wavelength to frequency (Hz)
+	    freq = const.c.cgs.value / wave
+
+	    # The intensity of an ideal blackbody at that temperature
+	    B_nu = 2 * const.h.cgs.value * freq**3 / (const.c.cgs.value**2 * (np.exp(const.h.cgs.value * freq / (const.k_B.cgs.value * model.T)) - 1))
+	    
+	    return B_nu
+
+
+	# The four ALMA Bands we analyzed
+	alma_wavelengths_cm = [0.03, 0.087, 0.13, 0.3]
+
+	# The name of the directories where the ALMA Band-specific data is saved (corresponds to the alma_wavelenghts_cm list above)
+	bands = ['band1', 'band2', 'band3', 'band4']
+
+	# The three locations of our simulations 
+	locations = ['10au', '30au', '100au']
+
+	# The path to the analysis directory, assuming it is in the current working directory
+	base_path = 'analysis/polydisperse/' #'/Users/daniel/Desktop/SI_Project/final_mass_excess/polydisperse'
+
+	# Whether to consider the scattering opacities in the radiative transfer
+	include_scattering = True 
+
+	# The directory to use depending on whether scattering is enabled 
+	specific_directory = 'scattering' if include_scattering else 'absorption'
+
+	# Empty dictionary to store all relevant metrics 
+	data = {}
+	for location in locations:
+	    data[location] = {}
+	    for band in bands:
+	        data[location][band] = {
+	            'orbits': [],
+	            'mass_excess': [],
+	            'filling_factor': [],
+	            'optically_thick_frac': [],
+	            'mean_taus': []
+	        }
+
+	for location in locations:
+	    for band in bands:
+	        # Empty lists to store the data
+	        orbits = []
+	        mass_excess_list = []
+	        filling_factor_list = []
+	        optically_thick_frac_list = []
+	        mean_taus_list = []
+	        #
+	        path = os.path.join(base_path, band, specific_directory, location)
+	        #
+	        for orbit in range(101):  
+	            try:
+	                cube_results_file = os.path.join(path, f'cube_results_var_{orbit}.txt')
+	                cube_results = np.loadtxt(cube_results_file)
+	                mass_excess = cube_results[0]
+	                filling_factor = cube_results[1]
+	                #
+	                tau_intensity_file = os.path.join(path, f'tau_intensity_{orbit}.npy')
+	                tau_intensity = np.load(tau_intensity_file)
+	                #
+	                intensity_map = tau_intensity[1] # The intensity map is the second axis in the array
+	                #
+	                # The location, corresponds to the name of the directories as they are saved in the analysis folder 
+	                if location == '10au':
+	                    r_ = 10*const.au.cgs.value
+	                elif location == '30au':
+	                    r_ = 30*const.au.cgs.value
+	                elif location == '100au':
+	                    r_ = 100*const.au.cgs.value
+
+	                if band == 'band1':
+	                    wave_ = alma_wavelengths_cm[0]
+	                if band == 'band2':
+	                    wave_ = alma_wavelengths_cm[1]
+	                if band == 'band3':
+	                    wave_ = alma_wavelengths_cm[2]
+	                if band == 'band4':
+	                    wave_ = alma_wavelengths_cm[3]
+
+	                # Compute the optically thick fraction
+	                f_thick = np.mean(intensity_map) / return_bnu(r_, wave_)
+	                #
+	                orbits.append(orbit)
+	                mass_excess_list.append(mass_excess)
+	                filling_factor_list.append(filling_factor)
+	                optically_thick_frac_list.append(f_thick)
+	                mean_taus_list.append(np.mean(tau_intensity[0]))
+	                #
+	            except Exception as e:
+	                print(f"Error loading data for {location} {band} orbit {orbit}: {e}")
+	                break
+	        #
+	        data[location][band]['orbits'] = orbits
+	        data[location][band]['mass_excess'] = mass_excess_list
+	        data[location][band]['filling_factor'] = filling_factor_list
+	        data[location][band]['optically_thick_frac'] = optically_thick_frac_list
+	        data[location][band]['mean_taus'] = mean_taus_list
+
+
+	# For plotting labeling and formatting
+	location_to_col = {'10au': 0, '30au': 1, '100au': 2} # First column is 10 au, second is 30, third is 100
+	bands_cm = [0.03, 0.087, 0.13, 0.3] # For labeling
+	ALMA_bands = [10, 7, 6, 3] # For labeling
+	linestyles = ['-', '--', '-.', ':'] # Corresponding linestyles 
+	band_linestyles = dict(zip(bands, linestyles))
+
+	# Plot
+	fig, axes = plt.subplots(4, 3, figsize=(24, 26), sharex='col')
+	plt.subplots_adjust(top=0.85)
+
+	counter = 0 # To control indexing of the formatting lists/labels defined above
+	for location in locations:
+	    col = location_to_col[location]
+	    for counter, band in enumerate(bands):
+	        linestyle = band_linestyles[band]
+	        # Extract the data
+	        orbits = data[location][band]['orbits']
+	        mass_excess = data[location][band]['mass_excess']
+	        filling_factor = data[location][band]['filling_factor']
+	        f_thick = data[location][band]['optically_thick_frac']
+	        mean_taus = data[location][band]['mean_taus']
+	        
+	        # mass excess
+	        label = f'{np.array(bands_cm)[counter]*10:.2f} mm (Band {ALMA_bands[counter]})' if counter == 1 else \
+	                f'{np.array(bands_cm)[counter]*10:.1f} mm (Band {ALMA_bands[counter]})'
+	        axes[0][col].plot(orbits, mass_excess, linestyle=linestyle, label=label)
+	        
+	        # filling factor
+	        axes[1][col].plot(orbits, filling_factor, linestyle=linestyle)
+	        # optically thick fraction
+	        axes[3][col].plot(orbits, f_thick, linestyle=linestyle)
+	        # mean taus
+	        axes[2][col].plot(orbits, mean_taus, linestyle=linestyle)
+
+	# Set the axes limits    
+	axes[0][2].set_ylim(1) if specific_directory == 'absorption' else None
+	axes[3][0].set_ylim((0.0, 0.32)) if specific_directory == 'scattering' else None
+	axes[3][1].set_ylim((0.0, 0.32)) if specific_directory == 'scattering' else None
+
+	# Set titles for the columns
+	for col, location in enumerate(locations): axes[0][col].set_title(location)
+
+	# Set the axes labels
+	axes[0][0].set_ylabel('Mass Excess')
+	axes[1][0].set_ylabel('Filling Factor')
+	axes[3][0].set_ylabel('Optically Thick Fraction')
+	axes[2][0].set_ylabel(r'$\langle \tau_\nu^{\rm eff} \rangle$')
+
+	# Set xlabels for the bottom row only
+	for col in range(3): axes[3][col].set_xlabel(r'$t / P$')
+
+	# Set xlim for all subplots
+	for row in range(4):
+	    for col in range(3):
+	        axes[row][col].set_xlim(0, 100)
+
+	# Set tick params for all subplots
+	for row in range(4):
+	    for col in range(3):
+	        axes[row][col].tick_params(labelbottom=True, labelleft=True)
+
+	# Get handles and labels for legend from the first subplot
+	handles, labels = axes[0][0].get_legend_handles_labels()
+
+	# Place the legend below the suptitle
+	fig.legend(handles, labels, loc='upper center', frameon=True, fancybox=True, handlelength=1.5, ncol=4, bbox_to_anchor=(0.5, 0.91))
+
+	# Add suptitle
+	if specific_directory == 'scattering':
+	    fig.suptitle('Radiative Transfer Results', y=0.93)
+	    plt.savefig(f'results_{specific_directory}.png', dpi=300, bbox_inches='tight')
+	else:
+	    fig.suptitle('Radiative Transfer Results: Absorption Only', y=0.93)
+	    plt.savefig(f'results_{specific_directory}.png', dpi=300, bbox_inches='tight')
+
+	plt.show()
+
+.. figure:: _static/results_scattering.png
+    :align: center
+|
+|
+
+.. figure:: _static/results_absorption.png
+    :align: center
+|
+|
+
+
