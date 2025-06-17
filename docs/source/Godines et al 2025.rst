@@ -459,6 +459,8 @@ The following code shows the time evolution of the three simulations. This uses 
 	# We saved 101 snapshots, after each orbit
 	orbits = np.arange(0, 101, 1)
 
+	# Path to data, note that these are set assuming that the data and analysis folders are in the working directory
+
 	# Load the max particle densities per-species that was saved during analysis
 	max_density_10au = np.loadtxt('analysis/max_densities_10au.txt')
 	max_density_30au = np.loadtxt('analysis/max_densities_30au.txt')
@@ -741,8 +743,289 @@ The `compute_opacities <https://protort.readthedocs.io/en/latest/autoapi/protoRT
 Figure 6 - Time Evolution of Dust Distribution
 -----------
 
+The figure below shows the vertically and azimuthally averaged dust density as a function of time for all three simulations. A red dashed line marks the time of peak dust density, corresponding to the moment when streaming instability-driven clumping produces significant overdensities. At this point, the dust density exceeds the background level by factors of 9.46, 5.68, and 1.75 for the simulations at 10, 30, and 100 au, respectively.
+
+.. code-block:: python
+
+	import os
+	import re
+	import numpy as np
+	import matplotlib.pyplot as plt
+	from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+	try:
+	    import scienceplots
+	    plt.style.use('science')
+	    plt.rcParams.update({'font.size': 32, 'lines.linewidth': 2.5})
+	except:
+	    print('WARNING: Could not import scienceplots, please install via pip for proper figure formatting.')
+	    plt.style.use('default')
+
+
+	def extract_number(fname):
+	    """Return the first integer that appears in *fname* (used for natural sort)."""
+	    return int(re.search(r'\d+', fname).group())
+
+	def load_rhopmx(path):
+	    """
+	    Load polydisperse self-gravity simulation (either 10, 30, or 100 au run), and
+	    compute the azimuthally averaged density as a function of (x, t).
+
+	    Parameters
+	    ----------
+	    path : The path to the var_files data folder of the particular simulation
+
+	    Returns
+	    -------
+	    rhopmx : np.ndarray
+	        2-D array with shape (time, x)
+	    t_peak : int 
+	        time index at which the global maximum occurs
+	    """
+	    
+	    fnames = sorted([f for f in os.listdir(path) if f.endswith('.npy')], key=extract_number)
+
+	    averaged = np.zeros((len(fnames), 256))
+	    for i, fname in enumerate(fnames):
+	        data = np.load(os.path.join(path, fname)) # The rhop datacube -- shape = (y, z, x)
+	        averaged[i] = data.mean(axis=(0, 1)) # x-profile (mean over y & z)
+
+	    rhopmx = averaged # (time, x)
+	    t_peak = np.argmax(rhopmx.max(axis=1)) # index of global maximum
+	    return rhopmx, t_peak
+	    
+	# Load data for 10 au, 30 au, and 100 au runs, note that the path below assumpes the data folder is in the working directory
+	rhopmx_list, t_peaks = zip(*(load_rhopmx(f'pencil_data_{i}au/var_files/') for i in (10, 30, 100)))
+	titles = ['10 au', '30 au', '100 au']
+	time = np.arange(rhopmx_list[0].shape[0]) # assumes equal length
+
+
+	# Plot
+	fig, axs = plt.subplots(1, 3, figsize=(24, 8))
+
+	# Shared colour scale
+	vmin = min(np.log10(r).min() for r in rhopmx_list)
+	vmax = max(np.log10(r).max() for r in rhopmx_list)
+	levels = np.linspace(vmin, vmax, 256)
+
+	for j, (rho, t_peak) in enumerate(zip(rhopmx_list, t_peaks)):
+	    cf = axs[j].contourf(
+	        time, np.linspace(-0.1, 0.1, 256),
+	        np.log10(rho).T, levels=levels, cmap='viridis', extend='both'
+	    )
+	    axs[j].set_title(titles[j])
+	    axs[j].set_xlabel(r'$t / P$')
+	    axs[j].set_xticks([0, 20, 40, 60, 80, 100])
+	    axs[j].set_yticks([-0.1, -0.05, 0, 0.05, 0.1])
+	    axs[j].axvline(t_peak, color='red', ls='--', alpha=0.6, label=r'$\rho_{d,\mathrm{max}} / \rho_{d,0}$')
+	    axs[j].legend(loc='upper right', frameon=True, fancybox=True, handlelength=0.5)
+	    axs[j].set_aspect('auto')
+
+	# Left-most y-axis label
+	axs[0].set_ylabel(r'$x / H$')
+	for ax in axs[1:]:
+	    ax.tick_params(labelleft=False)
+
+	# Shared colorbar beside the last axis
+	divider = make_axes_locatable(axs[-1])
+	cax = divider.append_axes("right", size="5%", pad=0.4)
+	cb = fig.colorbar(cf, cax=cax)
+	cb.set_label(r'$\log_{10}\!\left(\rho_{d} / \rho_{d,0}\right)$')
+
+	fig.savefig('poly_max_density.png', dpi=300, bbox_inches='tight')
+	plt.show()
+
+.. figure:: _static/poly_max_density.png
+    :align: center
+|
+|
+
+
 Figure 7 - Optical Depth and Intensity Maps
 -----------
+
+The effective optical depth and corresponding intensity maps at the output plane are displayed below. This example shows only the results at one particular orbit (the time of maximum density as denoted in Fig. 6), and at ALMA Band 7 (0.87 mm). The key metrics are annotated in red, including the mean optical depth and the corresponding filling factor, as well as the optically thick fraction and the mass excess.
+
+.. code-block:: python
+
+	from StreamingInstability_YJ14 import shearing_box, disk_model
+	import astropy.constants as const
+	import numpy as np
+	import matplotlib.pyplot as plt
+	import os, re
+	from matplotlib import gridspec
+	from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+	try:
+	    import scienceplots
+	    plt.style.use('science')
+	    plt.rcParams.update({'font.size': 32, 'lines.linewidth': 2.5})
+	except:
+	    print('WARNING: Could not import scienceplots, please install via pip for proper figure formatting.')
+	    plt.style.use('default')
+
+	def return_bnu(r, wave):
+	    """Planck function at radius r (cm) and wavelength wave (cm).
+
+	    Parameters
+	    ----------
+	    r : The radius of the disk at which to compute the intensity, in cm.
+	    wave : The observational wavelength, in cm.
+
+	    Returns
+	    -------
+	    b_nu : float
+	        The intensity of an ideal blackbody at the temperature of the given disk locationm
+	    """
+	    
+	    # The disk model we adopt in this work
+	    mass_disk = 0.02
+	    M_star, M_disk = const.M_sun.cgs.value, mass_disk * const.M_sun.cgs.value
+	    r_c = 300 * const.au.cgs.value
+
+	    # Define the disk model to calculate the temperature 
+	    model = disk_model.Model(r, r_c, M_star, M_disk, Z=0.03, q=3/7., T0=150) #grain_rho=grain_rho, stoke=0.3,
+
+	    # Convert wavelength to frequency (Hz)
+	    freq = const.c.cgs.value / wave
+
+	    # The intensity of an ideal blackbody at that temperature
+	    B_nu = 2 * const.h.cgs.value * freq**3 / (const.c.cgs.value**2 * (np.exp(const.h.cgs.value * freq / (const.k_B.cgs.value * model.T)) - 1))
+	    
+	    return B_nu
+
+	def extract_number(fname):          
+	    """ Helper function for loading the var files in order (*_var_*.npy) """
+	    return int(re.search(r'\d+', fname).group())
+
+	def load_rhopmx(path):
+	    """ Helpfer function to load the var files and compute the maximum dust density observer at each orbit """
+	    fnames = sorted([f for f in os.listdir(path) if f.endswith('.npy')], key=extract_number)
+	    averaged = np.zeros((256, len(fnames)))
+	    for i, f in enumerate(fnames):
+	        averaged[:, i] = np.mean(np.load(os.path.join(path, f)), axis=(0, 1))
+	    return np.transpose(averaged)
+
+	# Load the var files and compute the maximum dust density for each simulation (note that the data directories are assumed to be in the working directory)
+	rhopmx1 = load_rhopmx('pencil_data_10au/var_files/')
+	rhopmx2 = load_rhopmx('pencil_data_30au/var_files/')
+	rhopmx3 = load_rhopmx('pencil_data_100au/var_files/')
+
+	# Ran simulation for 100 orbits
+	time = np.arange(0, 101, 1) 
+
+	# indices of peak frame for each run (needed for cube_results_var_*.txt)
+	ind1 = np.where(rhopmx1 == np.max(rhopmx1))[0]
+	ind2 = np.where(rhopmx2 == np.max(rhopmx2))[0]
+	ind3 = np.where(rhopmx3 == np.max(rhopmx3))[0]
+
+	# Load the radiative transfer results (effective optical depth and intensity maps)
+	specific_alma_wavelength = 0.087 # Observational wavelength in cm, this figure only considers ALMA Band 7
+
+	# Load the optical depth and intensity maps, note that ALMA Band 7 data is saved as band2 in the data directory
+	# Note that the analysis directory is assumed to be in the current working directory
+	base_path = 'analysis/polydisperse/band2/scattering/' 
+	tau_int1 = np.load(f'{base_path}/10au/tau_intensity_{ind1[0]}.npy')
+	tau_int2 = np.load(f'{base_path}/30au/tau_intensity_{ind2[0]}.npy')
+	tau_int3 = np.load(f'{base_path}/100au/tau_intensity_{ind3[0]}.npy')
+
+	data = np.loadtxt(f'{base_path}/10au/cube_results_var_{ind1[0]}.txt')
+	me0 = data[0]
+	ff0 = data[1]
+
+	data = np.loadtxt(f'{base_path}/30au/cube_results_var_{ind2[0]}.txt')
+	me1 = data[0]
+	ff1 = data[1]
+
+	data = np.loadtxt(f'{base_path}/100au/cube_results_var_{ind3[0]}.txt')
+	me2 = data[0]
+	ff2 = data[1]
+
+
+	# Plot
+	fig2 = plt.figure(figsize=(26, 16))
+	gs = gridspec.GridSpec(2, 4, width_ratios=[1, 1, 1, 0.05], wspace=0.05, hspace=0.05)
+	axs = np.empty((2, 3), dtype=object)
+
+	# Effective optical depth maps 
+	vmin_m = min(np.log10(t[0]).min() for t in [tau_int1, tau_int2, tau_int3])
+	vmax_m = max(np.log10(t[0]).max() for t in [tau_int1, tau_int2, tau_int3])
+	levels_m = np.linspace(vmin_m, vmax_m, 256)
+
+	for j, ti in enumerate([tau_int1, tau_int2, tau_int3]):
+	    ax = fig2.add_subplot(gs[0, j]); axs[0, j] = ax
+	    cf_m = ax.contourf(np.linspace(-0.1, 0.1, 256), np.linspace(-0.1, 0.1, 256),
+	                       np.log10(ti[0]), levels=levels_m, cmap='plasma', extend='both')
+	    ax.set_xlim(0.1, -0.1)
+	    ax.set_xticks([-0.1, -0.05, 0, 0.05, 0.1])
+	    ax.set_yticks([-0.1, -0.05, 0, 0.05, 0.1])
+	    ax.set_xticklabels(['-0.1', '-0.05', '0.0', '0.05', '0.1'])
+	    ax.set_yticklabels(['-0.1', '-0.05', '0.0', '0.05', '0.1'])
+	    ax.tick_params(labelbottom=False)
+	    ax.set_aspect('equal')
+	    ax.set_ylabel(r'$y/H$') if j == 0 else ax.tick_params(labelleft=False)
+	    ax.set_title(['10 au', '30 au', '100 au'][j])
+	    # The annotations we show in red 
+	    mean_m = [np.mean(tau_int1[0]), np.mean(tau_int2[0]), np.mean(tau_int3[0])]
+	    ff = [ff0, ff1, ff2]
+	    txt = (r"$\begin{array}{c}"
+	           rf"\langle \tau_{{0.87\,\mathrm{{mm}}}}^{{\mathrm{{eff}}}}\rangle={mean_m[j]:.1f}\\"
+	           rf"f_{{\rm fill}}={ff[j]:.2f}"
+	           r"\end{array}$")
+	    ax.text(0.5, 0.13, txt, transform=ax.transAxes, ha='center', va='center',
+	            color='red', bbox=dict(boxstyle='round,pad=0.5', facecolor='white',
+	                                   edgecolor='red', linewidth=2, alpha=0.6))
+
+	# colorbar for above optical depth map
+	cax_top = fig2.add_subplot(gs[0, 3])
+	fig2.colorbar(cf_m, cax=cax_top).set_label(
+	    r'$\log_{10}\!\left(\tau_{0.87\mathrm{mm}}^{\mathrm{eff}}\right)$')
+
+	# Intensity maps 
+	vmin_b = min(np.log10(t[1]).min() for t in [tau_int1, tau_int2, tau_int3])
+	vmax_b = max(np.log10(t[1]).max() for t in [tau_int1, tau_int2, tau_int3])
+	levels_b = np.linspace(vmin_b, vmax_b, 256)
+
+	for j, ti in enumerate([tau_int1, tau_int2, tau_int3]):
+	    ax = fig2.add_subplot(gs[1, j]); axs[1, j] = ax
+	    cf_b = ax.contourf(np.linspace(-0.1, 0.1, 256), np.linspace(-0.1, 0.1, 256),
+	                       np.log10(ti[1]), levels=levels_b, cmap='coolwarm',
+	                       extend='both')
+	    ax.set_xlim(0.1, -0.1)
+	    ax.set_xticks([-0.1, -0.05, 0, 0.05, 0.1])
+	    ax.set_yticks([-0.1, -0.05, 0, 0.05, 0.1])
+	    ax.set_xticklabels(['-0.1', '-0.05', '0.0', '0.05', '0.1'])
+	    ax.set_yticklabels(['-0.1', '-0.05', '0.0', '0.05', '0.1'])
+	    ax.set_xlabel(r'$x/H$'); ax.set_aspect('equal')
+	    ax.set_ylabel(r'$y/H$') if j == 0 else ax.tick_params(labelleft=False)
+	    # The annotations we show in red
+	    me = [me0, me1, me2]
+	    # Optically thick fraction: mean(intensity)/Planckian
+	    mean_b = [np.mean(tau_int1[1]) / return_bnu(10*const.au.cgs.value, specific_alma_wavelength),
+	              np.mean(tau_int2[1]) / return_bnu(30*const.au.cgs.value, specific_alma_wavelength),
+	              np.mean(tau_int3[1]) / return_bnu(100*const.au.cgs.value, specific_alma_wavelength)]
+	    txt = (r"$\begin{array}{c}"
+	           rf"f_{{\rm thick}}={mean_b[j]:.2f}\\"
+	           rf"\Lambda={me[j]:.1f}"
+	           r"\end{array}$")
+	    ax.text(0.5, 0.13, txt, transform=ax.transAxes, ha='center', va='center',
+	            color='red', bbox=dict(boxstyle='round,pad=0.5', facecolor='white',
+	                                   edgecolor='red', linewidth=2, alpha=0.6))
+
+	# colorbar for above intensity map
+	cax_bot = fig2.add_subplot(gs[1, 3])
+	fig2.colorbar(cf_b, cax=cax_bot).set_label(
+	    r'$\log_{10}\!\left(I_{0.87\,\mathrm{mm}}\right)$' +
+	    '\n(erg s$^{-1}$ cm$^{-2}$ Hz$^{-1}$ sr$^{-1}$)')
+
+	fig2.savefig('RT_results_ALMA_Band_7.png', dpi=300, bbox_inches='tight')
+	plt.show()
+
+.. figure:: _static/RT_results_ALMA_Band_7.png
+    :align: center
+|
+|
+
 
 Figure 8 - Radiative Transfer Results
 -----------
