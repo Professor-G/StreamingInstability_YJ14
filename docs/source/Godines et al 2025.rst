@@ -583,8 +583,7 @@ This shows how we calculated the DSHARP opacities for the full grain size distri
 	    plt.style.use('science')
 	    plt.rcParams.update({'font.size': 32, 'lines.linewidth': 2.5})
 	except:
-	    print('WARNING: Could not import scienceplots, please install via pip for p\
-	roper figure formatting.')
+	    print('WARNING: Could not import scienceplots, please install via pip for proper figure formatting.')
 	    plt.style.use('default')
 
 
@@ -660,8 +659,7 @@ The `compute_opacities <https://protort.readthedocs.io/en/latest/autoapi/protoRT
 	    plt.style.use('science')
 	    plt.rcParams.update({'font.size': 32, 'lines.linewidth': 2.5})
 	except:
-	    print('WARNING: Could not import scienceplots, please install via pip for p\
-	roper figure formatting.')
+	    print('WARNING: Could not import scienceplots, please install via pip for proper figure formatting.')
 	    plt.style.use('default')
 
 
